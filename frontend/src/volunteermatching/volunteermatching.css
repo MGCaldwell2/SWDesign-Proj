@@ -1,0 +1,141 @@
+/* VolunteerMatching.css */
+
+:root {
+  --bg: #0a0a0a;
+  --panel: #141414;
+  --border: #2b2b2b;
+  --text: #eaeaea;
+  --muted: #a9a9a9;
+  --accent: #2ecc71;
+  --accent-2: #2d2d2d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.vm-container {
+  min-height: 100vh;
+  padding: 24px;
+  display: grid;
+  place-items: start center;
+}
+
+.vm-card {
+  width: min(800px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+
+.vm-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.vm-subtitle {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+.vm-field {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0;
+}
+
+.vm-field label {
+  font-size: 14px;
+}
+
+.vm-field select {
+  width: 100%;
+  background: #0f0f0f;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.vm-field select:focus {
+  border-color: #3d3d3d;
+}
+
+.vm-reasons {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 10px 0 16px;
+}
+
+.vm-reasons ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.vm-event-details {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #0d0d0d;
+}
+
+.vm-event-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vm-event-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.vm-event-details p {
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.vm-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.vm-actions button {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+.vm-actions button:first-child {
+  background: var(--accent);
+  color: #0b2816;
+}
+
+.vm-actions button:first-child:hover {
+  filter: brightness(1.05);
+}
+
+.vm-actions button:last-child {
+  background: var(--accent-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.vm-saved {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #7ee2a8;
+}
