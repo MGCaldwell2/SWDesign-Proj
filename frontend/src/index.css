@@ -3,9 +3,10 @@
   line-height: 1.5;
   font-weight: 400;
 
+  /* Default to a light theme so pages render with light background by default */
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: #213547; /* dark text for light background */
+  background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -42,7 +43,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f3f4f6;
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -54,15 +55,16 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
+/* Respect user's preference for dark theme */
+@media (prefers-color-scheme: dark) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #242424;
   }
   a:hover {
-    color: #747bff;
+    color: #535bf2;
   }
   button {
-    background-color: #f9f9f9;
+    background-color: #1a1a1a;
   }
 }
