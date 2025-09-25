@@ -1,0 +1,178 @@
+.account-manage-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background: #0b0b0b;
+  box-sizing: border-box;
+  padding: 0; /* remove padding if you want full width edge-to-edge */
+}
+
+/* Ensure root fills screen */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+.account-form {
+  width: 100%;
+  flex: 1; /* grow to fill the container vertically */
+  display: flex;
+  flex-direction: column;
+  background: #111;
+  color: #f0f0f0;
+  padding: 2rem;
+  box-sizing: border-box;
+  overflow-y: auto; /* scroll if needed */
+  border-radius: 0;  /* optional: flush edges */
+  margin: 0;         /* remove centering margin */
+}
+
+/* Headings */
+form h2 {
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Field groups */
+form > div {
+  margin-bottom: 2rem; /* Extra spacing between questions */
+}
+
+/* Labels */
+form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #e0e0e0;
+}
+
+/* Inputs & Selects */
+form input[type="text"],
+form input[type="date"],
+form select,
+form textarea {
+  width: calc(100% - 1.7rem);
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #555;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  background: #222;
+  color: #f0f0f0;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+form input:focus,
+form select:focus,
+form textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.4);
+}
+
+/* Checkboxes */
+form input[type="checkbox"] {
+  margin: 0;
+  transform: scale(1.1);
+}
+
+/* Skills container stacked vertically */
+form .skills-group {
+  display: flex;
+  flex-direction: column; /* stack vertically */
+  gap: 0.75rem;           /* spacing between skills */
+}
+
+/* Each skill item */
+form .skill-item {
+  display: flex;           /* keep checkbox + label inline */
+  align-items: center;
+  gap: 0.5rem;             /* space between checkbox and label */
+}
+
+/* Availability section */
+form .availability-list {
+  margin-top: 0.75rem;
+}
+
+form .availability-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #222; /* Dark card */
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+/* Buttons */
+form button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+/* Submit button */
+form button[type="submit"] {
+  display: block;
+  width: 100%;
+  padding: 0.9rem;
+  background: #2563eb;
+  color: #fff;
+  font-size: 1rem;
+}
+
+form button[type="submit"]:hover {
+  background: #1e4ed8;
+}
+
+form button[type="submit"]:active {
+  transform: scale(0.98);
+}
+
+/* Secondary buttons */
+form button[type="button"] {
+  margin-top: 0.5rem;
+  padding: 0.55rem 1rem;
+  background: #444;
+  color: #f0f0f0;
+  font-size: 0.9rem;
+}
+
+form button[type="button"]:hover {
+  background: #555;
+}
+
+form button[type="button"]:active {
+  transform: scale(0.97);
+}
+
+/* Popup overlay */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+}
+
+.popup-content {
+  background: #111;
+  color: #f0f0f0;
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+  min-width: 260px;
+  text-align: center;
+}

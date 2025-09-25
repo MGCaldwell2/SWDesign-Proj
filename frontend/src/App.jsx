@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Link } from "react-router-dom";  
+import AccountManage from "./AccountManagement/accountmanage";
+import EventManageForm from "./EventManageForm/EventManageForm";
+import VolunteerLog from "./history/history";
+import Login from "./Login/Login";
 import UserReg from "./UserReg/UserReg";
-import EventManageForm from "./EventManageForm/EventManageForm"; // 👈 import your new component
+import VolunteerMatching from "./volunteermatching/volunteermatching";  
+
 
 export default function App() {
   const [msg, setMsg] = useState("loading...");
@@ -15,6 +20,10 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: "sans-serif", padding: 20 }}>
+      {/* Debug banner to confirm React mounted */}
+      <div style={{ position: "fixed", top: 8, right: 8, background: "#fffa", color: "#000", padding: "6px 8px", borderRadius: 6, zIndex: 9999 }}>
+        Debug: App mounted
+      </div>
       <Routes>
         {/* Home Page */}
         <Route
@@ -32,6 +41,18 @@ export default function App() {
                 <Link to="/EventManage">
                   <button>Go to Event Management</button>
                 </Link>
+                <Link to="/VolunteerMatching">
+                  <button>Go to Volunteer Matching</button>
+                </Link>
+                <Link to="/VolunteerLog">
+                  <button>Go to Volunteer Log</button>
+                </Link>
+                <Link to="/Login">
+                  <button>Go to Login</button>
+                </Link>
+                <Link to="/AccountManage">
+                  <button>Go to Account Manage</button>
+                </Link>
               </div>
             </div>
           }
@@ -40,6 +61,10 @@ export default function App() {
         {/* Pages */}
         <Route path="/UserRegistration" element={<UserReg />} />
         <Route path="/EventManage" element={<EventManageForm />} />
+        <Route path="/VolunteerMatching" element={<VolunteerMatching />} />
+        <Route path="/VolunteerLog" element={<VolunteerLog />} />
+        <Route path="/Login" element={<Login />} />
+        <Route path="/AccountManage" element={<AccountManage />} />
       </Routes>
     </div>
   );
