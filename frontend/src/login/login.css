@@ -3,110 +3,152 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Body Background */
-body {
-  min-height: 100vh;
+/* Body and page background */
+body, html {
+  height: 100%;
+  background: #f0f4f8;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea, #764ba2);
 }
 
-/* Login Card */
+/* Login page container */
+.login-page {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+}
+
+/* Login form container */
 .login-container {
-  background: white;
-  border-radius: 20px;
-  padding: 3rem 2.5rem;
-  width: 400px;
-  max-width: 90%;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
   text-align: center;
+}
+
+/* Header */
+.login-container h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Inputs */
+.login-container input[type="email"],
+.login-container input[type="password"],
+.modal input[type="email"] {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  outline: none;
+  background: #fff;
+  color: #333;
+  font-size: 16px;
   transition: all 0.3s ease;
 }
 
-.login-container h2 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 2rem;
-}
-
-/* Input Fields */
-.login-container input,
-.login-container select {
-  width: 100%;
-  padding: 14px;
-  margin-bottom: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  font-size: 15px;
-  outline: none;
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
-  transition: all 0.25s ease;
-}
-
 .login-container input:focus,
-.login-container select:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+.modal input:focus {
+  border-color: #2575fc;
+  box-shadow: 0 0 5px rgba(37,117,252,0.3);
 }
 
-/* Buttons */
-.submit-btn,
-.login-container button {
+/* Remember me checkbox */
+.remember-me {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.remember-me input {
+  margin-right: 8px;
+}
+
+/* Submit button */
+.submit-btn {
   width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  background: #667eea;
-  color: white;
+  padding: 12px;
+  background: #2575fc;
+  color: #fff;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: background 0.3s ease;
 }
 
-.submit-btn:hover,
-.login-container button:hover {
-  background: linear-gradient(135deg, #5a67d8, #667eea);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-  transform: translateY(-2px);
+.submit-btn:hover {
+  background: #6a11cb;
 }
 
-/* Error Messages */
-.error {
-  color: #e53e3e;
-  font-size: 13px;
-  margin-bottom: 0.5rem;
-  text-align: left;
+/* Cancel button */
+.cancel-btn {
+  padding: 12px;
+  background: #ccc;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
 }
 
-/* Register Text */
+.cancel-btn:hover {
+  background: #aaa;
+}
+
+/* Register / forgot password */
 .register-text {
-  margin-top: 1rem;
+  margin-top: 15px;
   font-size: 14px;
-  color: #555;
 }
 
 .register-text button {
   background: none;
   border: none;
-  color: #667eea;
-  font-weight: 600;
+  color: #2575fc;
   cursor: pointer;
+  font-weight: bold;
+  margin-left: 5px;
 }
 
 .register-text button:hover {
   text-decoration: underline;
 }
 
-/* Responsive */
-@media (max-width: 450px) {
-  .login-container {
-    width: 90%;
-    padding: 2rem;
-  }
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+/* Modal box */
+.modal {
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 }
