@@ -1,22 +1,24 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import "./login.css";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({ email: "", password: "" });
+  const [loginMessage, setLoginMessage] = useState("");
 
   const validate = () => {
     const newErrors = { email: "", password: "" };
     let valid = true;
 
     if (!email) {
-      newErrors.email = "*Email* is mandatory";
+      newErrors.email = "Email is required";
       valid = false;
     }
 
     if (!password) {
-      newErrors.password = "*Password* is mandatory";
+      newErrors.password = "Password is required";
       valid = false;
     }
 
@@ -31,36 +33,69 @@ export default function Login() {
     const userData = JSON.parse(localStorage.getItem(email));
 
     if (userData && userData.password === password) {
-      console.log(userData.name + " You have successfully logged in!");
+      setLoginMessage(`Welcome back, ${userData.name}! You have successfully logged in.`);
+      setErrors({ email: "", password: "" });
     } else {
-      console.log("Email or Password is Incorrect");
+      setLoginMessage("Email or password is incorrect. Please try again.");
     }
   };
 
   return (
-    <>
-      <h2>Login Form</h2>
-      <form className="login-form" onSubmit={onSubmit}>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-        />
-        {errors.email && <span style={{ color: "red" }}>{errors.email}</span>}
+    <div className="login-container">
+      <header className="login-header">
+        <Link to="/" className="back-button">
+          ← Back to Home
+        </Link>
+        <h1>Sign In</h1>
+        <p>Welcome back! Please sign in to your account.</p>
+      </header>
 
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-        />
-        {errors.password && (
-          <span style={{ color: "red" }}>{errors.password}</span>
-        )}
+      <div className="login-content">
+        <form className="login-form" onSubmit={onSubmit}>
+          <div className="form-field">
+            <label htmlFor="email">Email Address</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className={errors.email ? "error" : ""}
+            />
+            {errors.email && <span className="error-message">{errors.email}</span>}
+          </div>
 
-        <input type="submit" style={{ backgroundColor: "#a1eafb" }} />
-      </form>
-    </>
+          <div className="form-field">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              className={errors.password ? "error" : ""}
+            />
+            {errors.password && <span className="error-message">{errors.password}</span>}
+          </div>
+
+          <button type="submit" className="login-button">
+            Sign In
+          </button>
+
+          {loginMessage && (
+            <div className={`login-message ${loginMessage.includes('Welcome') ? 'success' : 'error'}`}>
+              {loginMessage}
+            </div>
+          )}
+        </form>
+
+        <div className="login-footer">
+          <p>Don't have an account?</p>
+          <Link to="/UserRegistration" className="register-link">
+            Create Account
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
