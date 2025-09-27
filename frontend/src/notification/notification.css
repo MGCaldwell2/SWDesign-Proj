@@ -1,7 +1,7 @@
 .notifications-container {
   min-height: 100vh;
   background: white !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: sans-serif;
   color: #1f2937 !important;
 }
 

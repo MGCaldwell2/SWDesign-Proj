@@ -7,12 +7,11 @@ function Home() {
     <div className="home-container">
       <header className="home-header">
         <h1>Volunteer Management System</h1>
-        <p>Welcome to your comprehensive volunteer management platform</p>
+        <p>Welcome to the volunteer management platform</p>
       </header>
 
       <main className="home-main">
         <div className="navigation-grid">
-          {/* User Management Section */}
           <section className="nav-section">
             <h2>User Management</h2>
             <div className="nav-cards">
@@ -36,7 +35,6 @@ function Home() {
             </div>
           </section>
 
-          {/* Volunteer Activities Section */}
           <section className="nav-section">
             <h2>Volunteer Activities</h2>
             <div className="nav-cards">
@@ -54,7 +52,6 @@ function Home() {
             </div>
           </section>
 
-          {/* Event Management Section */}
           <section className="nav-section">
             <h2>Event Management</h2>
             <div className="nav-cards">
@@ -73,13 +70,11 @@ function Home() {
           </section>
         </div>
 
-        {/* Quick Stats or Welcome Message */}
         <section className="welcome-section">
           <div className="welcome-card">
             <h2>Get Started</h2>
             <p>
-              Whether you're looking to volunteer, manage events, or organize activities, 
-              our platform provides all the tools you need to make a difference in your community.
+              You can find everything you need right here.
             </p>
             <div className="quick-actions">
               <Link to="/VolunteerMatching" className="cta-button primary">
