@@ -1,0 +1,382 @@
+.notifications-container {
+  min-height: 100vh;
+  background: white !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  color: #1f2937 !important;
+}
+
+/* Force white background and override dark mode */
+* {
+  color-scheme: light !important;
+}
+
+html, body, #root {
+  background: white !important;
+  background-color: white !important;
+  color: #1f2937 !important;
+}
+
+/* Ensure all elements use light theme */
+.notifications-container * {
+  background-color: inherit;
+  color: inherit;
+}
+
+@media (prefers-color-scheme: dark) {
+  html, body, #root {
+    background: white !important;
+    background-color: white !important;
+    color: #1f2937 !important;
+  }
+  
+  .notifications-container {
+    background: white !important;
+    color: #1f2937 !important;
+  }
+}
+
+.notifications-header {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1.5rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.back-button {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.back-button:hover {
+  background: #f1f5f9;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.header-title h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.unread-badge {
+  background: #ef4444;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.mark-all-read {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.mark-all-read:hover {
+  background: #5a67d8;
+}
+
+.notifications-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.filter-btn {
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.filter-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.filter-btn.active {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.notification-item {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.notification-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #d1d5db;
+}
+
+.notification-item.unread {
+  border-left: 4px solid #667eea;
+  background: #fefefe;
+}
+
+.notification-item.unread::before {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 8px;
+  height: 8px;
+  background: #667eea;
+  border-radius: 50%;
+}
+
+.notification-item.priority-high {
+  border-left-color: #ef4444;
+}
+
+.notification-item.priority-medium {
+  border-left-color: #f59e0b;
+}
+
+.notification-item.priority-low {
+  border-left-color: #10b981;
+}
+
+.notification-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border-radius: 50%;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.notification-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.notification-time {
+  color: #6b7280;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.notification-message {
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0 0 1rem 0;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 0.375rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+  border: 1px solid transparent;
+}
+
+.action-btn.mark-read {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.action-btn.mark-read:hover {
+  background: #e5e7eb;
+}
+
+.action-btn.view-event {
+  background: #667eea;
+  color: white;
+}
+
+.action-btn.view-event:hover {
+  background: #5a67d8;
+}
+
+.action-btn.delete {
+  background: #fef2f2;
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.action-btn.delete:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #6b7280;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: #374151;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .notifications-header {
+    padding: 1rem;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .header-title {
+    justify-content: flex-start;
+  }
+  
+  .notifications-content {
+    padding: 1rem;
+  }
+  
+  .notification-item {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .notification-header {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .notification-actions {
+    gap: 0.25rem;
+  }
+  
+  .action-btn {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .filter-bar {
+    margin-bottom: 1rem;
+  }
+  
+  .filter-btn {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .notification-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.25rem;
+  }
+  
+  .notification-header h3 {
+    font-size: 0.9rem;
+  }
+  
+  .notification-message {
+    font-size: 0.875rem;
+  }
+  
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+}

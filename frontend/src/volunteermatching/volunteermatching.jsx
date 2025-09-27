@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import "./VolunteerMatching.css";
 
-// Mock "Database" (replace with API/SQL later)
+// Mock Data for Assignmet 1 purposes
 const MOCK_VOLUNTEERS = [
   { id: 1, name: "Alex Johnson", skills: ["First Aid", "Spanish", "Crowd Control"], availability: ["2025-10-01", "2025-10-05", "2025-10-12"], city: "Houston" },
   { id: 2, name: "Taylor Kim", skills: ["Data Entry", "Photography"], availability: ["2025-10-05", "2025-10-07"], city: "Houston" },
