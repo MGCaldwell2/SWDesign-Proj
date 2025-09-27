@@ -2,12 +2,18 @@
     width: 200%;
     margin: 80px auto;
     padding: 32px 24px;
-    background: #c31f1f;
+    background: #111;
     border-radius: 10px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6);
     font-family: 'Segoe UI', Arial, sans-serif;
+    color: #f0f0f0;
 }
 
+html, body, #root {
+  min-height: 100vh;
+  margin: 0;
+  background: #0b0b0b;
+}
 
 .user-reg-title {
     text-align: center;
@@ -25,26 +31,29 @@
 .user-reg-label {
     font-weight: 500;
     margin-bottom: 4px;
-    color: #10c979;
+    color: #e0e0e0;
 }
 
 .user-reg-input {
     padding: 10px 12px;
-    border: 1px solid #00ff40;
+    border: 1px solid #555;
     border-radius: 6px;
     font-size: 1rem;
     transition: border-color 0.2s;
+    background: #222;
+    color: #f0f0f0;
 }
 
 .user-reg-input:focus {
-    border-color: #00ff15;
+    border-color: #2563eb;
     outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.4);
 }
 
 .user-reg-btn {
     padding: 12px;
-    background: #3f00ed;
-    color: #000000;
+    background: #2563eb;
+    color: #fff;
     border: none;
     border-radius: 6px;
     font-size: 1rem;
@@ -54,7 +63,7 @@
 }
 
 .user-reg-btn:hover {
-    background: #33ff00;
+    background: #1e4ed8;
 }
 
 .user-reg-error {
@@ -69,11 +78,31 @@
     display: block;
     text-align: center;
     margin-top: 16px;
-    color: #1837a6;
+    color: #2563eb;
     text-decoration: none;
     font-size: 0.98rem;
 }
 
 .user-reg-link:hover {
     text-decoration: underline;
+}
+
+.toggle-btn {
+  margin-left: 8px;
+  padding: 8px 12px;
+  background: #444;
+  color: #f0f0f0;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.toggle-btn:hover {
+  background: #555;
+}
+
+.toggle-btn:active {
+  transform: scale(0.96);
 }

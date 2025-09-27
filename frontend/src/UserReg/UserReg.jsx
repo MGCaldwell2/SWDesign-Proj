@@ -5,12 +5,13 @@ import "./UserReg.css";
 export default function UserReg() {
     const [form, setForm] = useState({
         username: "",
-        email: "",
         password: "",
         confirmPassword: "",
     });
 
     const [error, setError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -33,7 +34,7 @@ export default function UserReg() {
                 {error && <div className="user-reg-error">{error}</div>}
 
                 <label className="user-reg-label">
-                    Username
+                    Username (email)
                     <input
                         type="text"
                         name="username"
@@ -45,39 +46,49 @@ export default function UserReg() {
                 </label>
 
                 <label className="user-reg-label">
-                    Email
-                    <input
-                        type="email"
-                        name="email"
-                        value={form.email}
-                        onChange={handleChange}
-                        required
-                        className="user-reg-input"
-                    />
-                </label>
-
-                <label className="user-reg-label">
                     Password
-                    <input
-                        type="password"
-                        name="password"
-                        value={form.password}
-                        onChange={handleChange}
-                        required
-                        className="user-reg-input"
-                    />
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            value={form.password}
+                            onChange={handleChange}
+                            required
+                            className="user-reg-input"
+                            style={{ flex: 1 }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="toggle-btn"
+                        >
+                            {showPassword ? "Hide" : "Show"}
+                        </button>
+                    </div>
                 </label>
 
                 <label className="user-reg-label">
                     Confirm Password
-                    <input
-                        type="password"
-                        name="confirmPassword"
-                        value={form.confirmPassword}
-                        onChange={handleChange}
-                        required
-                        className="user-reg-input"
-                    />
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                        <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            name="confirmPassword"
+                            value={form.confirmPassword}
+                            onChange={handleChange}
+                            required
+                            className="user-reg-input"
+                            style={{ flex: 1 }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                            }
+                            className="toggle-btn"
+                        >
+                            {showConfirmPassword ? "Hide" : "Show"}
+                        </button>
+                    </div>
                 </label>
 
                 <button type="submit" className="user-reg-btn">Register</button>
