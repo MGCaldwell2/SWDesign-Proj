@@ -58,9 +58,13 @@ function Home() {
               <Link to="/EventManage" className="nav-card">
                 <div className="card-icon">📅</div>
                 <h3>Event Management</h3>
-                <p>Create and manage volunteer events</p>
+                <p>Manage and create events</p>
               </Link>
-              
+              <Link to="/admin/notifications" className="nav-card">
+                <div className="card-icon">📢</div>
+                <h3>Send Notification (Admin)</h3>
+                <p>Send notifications to volunteers</p>
+              </Link>
               <Link to="/notifications" className="nav-card">
                 <div className="card-icon">🔔</div>
                 <h3>Notifications</h3>
