@@ -1,10 +1,14 @@
 import express from "express";
 import fs from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
 
 const router = express.Router();
 
-const DATA_FILE = path.resolve(process.cwd(), "backend", "accounts.json");
+// Resolve accounts.json relative to this module so it works no matter where the process was started
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_FILE = path.resolve(__dirname, "accounts.json");
 
 let store = {}; // id -> entry
 
@@ -22,8 +26,10 @@ async function loadStore() {
 async function persistStore() {
   try {
     await fs.writeFile(DATA_FILE, JSON.stringify(store, null, 2), "utf8");
+    return true;
   } catch (err) {
     console.error("Failed to persist accounts.json", err);
+    return false;
   }
 }
 
@@ -64,7 +70,12 @@ router.post("/", async (req, res) => {
   };
 
   store[entry.id] = entry;
-  await persistStore();
+  const ok = await persistStore();
+  if (!ok) {
+    // remove from memory if write failed
+    delete store[entry.id];
+    return res.status(500).json({ error: "Failed to persist account" });
+  }
 
   res.status(201).json(entry);
 });
