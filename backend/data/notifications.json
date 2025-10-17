@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "userId": 1,
+    "type": "assignment",
+    "message": "Assigned to Community Health Fair.",
+    "eventId": 101,
+    "isRead": false,
+    "timestamp": "2025-10-17T23:11:58.535Z"
+  },
+  {
+    "id": 2,
+    "userId": 1,
+    "type": "reminder",
+    "message": "Test Reminder",
+    "eventId": null,
+    "isRead": false,
+    "timestamp": "2025-10-17T23:12:27.945Z"
+  },
+  {
+    "id": 3,
+    "userId": 1,
+    "type": "update",
+    "message": "Test Update",
+    "eventId": null,
+    "isRead": false,
+    "timestamp": "2025-10-17T23:18:05.525Z"
+  }
+]
