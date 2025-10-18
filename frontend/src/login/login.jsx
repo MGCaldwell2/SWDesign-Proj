@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./login.css";
 
 export default function Login() {
@@ -7,6 +7,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [loginMessage, setLoginMessage] = useState("");
+  const navigate = useNavigate();
 
   const validate = () => {
     const newErrors = { email: "", password: "" };
@@ -26,17 +27,32 @@ export default function Login() {
     return valid;
   };
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
-    const userData = JSON.parse(localStorage.getItem(email));
+    try {
+      const res = await fetch("http://localhost:5050/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: email, password }),
+      });
 
-    if (userData && userData.password === password) {
-      setLoginMessage(`Welcome back, ${userData.name}! You have successfully logged in.`);
-      setErrors({ email: "", password: "" });
-    } else {
-      setLoginMessage("Email or password is incorrect. Please try again.");
+      const data = await res.json();
+      console.log("Login response:", res.status, data);
+
+      if (res.ok && data.token) {
+        // ✅ Save token
+        localStorage.setItem("token", data.token);
+
+        setLoginMessage("✅ Login successful! Redirecting...");
+        setTimeout(() => navigate("/"), 1500);
+      } else {
+        setLoginMessage(data.message || "❌ Invalid email or password.");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setLoginMessage("❌ An error occurred. Please try again.");
     }
   };
 
@@ -83,7 +99,11 @@ export default function Login() {
           </button>
 
           {loginMessage && (
-            <div className={`login-message ${loginMessage.includes('Welcome') ? 'success' : 'error'}`}>
+            <div
+              className={`login-message ${
+                loginMessage.includes("✅") ? "success" : "error"
+              }`}
+            >
               {loginMessage}
             </div>
           )}
