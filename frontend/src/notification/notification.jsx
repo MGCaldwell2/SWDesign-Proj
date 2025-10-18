@@ -2,78 +2,40 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './notification.css';
 
+
+const API_BASE = "/api";
+
 function Notification() {
   const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState('all');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  // For demo, hardcode userId=1
+  const userId = 1;
 
-  // Mock data for Assignment 1 purposes
+  // Fetch notifications from backend
   useEffect(() => {
-    const mockNotifications = [
-      {
-        id: 1,
-        type: 'assignment',
-        title: 'New Event Assignment',
-        message: 'You have been assigned to "Community Food Drive" on December 15, 2024.',
-        timestamp: new Date('2024-12-10T10:30:00'),
-        isRead: false,
-        priority: 'high',
-        eventId: 'evt_001'
-      },
-      {
-        id: 2,
-        type: 'update',
-        title: 'Event Update',
-        message: 'The location for "Beach Cleanup" has been changed to Sunset Beach Park.',
-        timestamp: new Date('2024-12-09T14:20:00'),
-        isRead: false,
-        priority: 'medium',
-        eventId: 'evt_002'
-      },
-      {
-        id: 3,
-        type: 'reminder',
-        title: 'Event Reminder',
-        message: 'Don\'t forget! "Senior Center Visit" is tomorrow at 2:00 PM.',
-        timestamp: new Date('2024-12-08T09:00:00'),
-        isRead: true,
-        priority: 'medium',
-        eventId: 'evt_003'
-      },
-      {
-        id: 4,
-        type: 'assignment',
-        title: 'New Event Assignment',
-        message: 'You have been assigned to "Holiday Toy Drive" on December 20, 2024.',
-        timestamp: new Date('2024-12-07T16:45:00'),
-        isRead: true,
-        priority: 'high',
-        eventId: 'evt_004'
-      },
-      {
-        id: 5,
-        type: 'update',
-        title: 'Schedule Change',
-        message: 'The start time for "Library Reading Program" has been moved to 10:00 AM.',
-        timestamp: new Date('2024-12-06T11:15:00'),
-        isRead: false,
-        priority: 'low',
-        eventId: 'evt_005'
-      },
-      {
-        id: 6,
-        type: 'reminder',
-        title: 'Training Reminder',
-        message: 'Complete your volunteer orientation before your next assignment.',
-        timestamp: new Date('2024-12-05T08:30:00'),
-        isRead: true,
-        priority: 'medium',
-        eventId: null
-      }
-    ];
-
-    setNotifications(mockNotifications);
-    setUnreadCount(mockNotifications.filter(n => !n.isRead).length);
+    setLoading(true);
+    setError(null);
+    fetch(`${API_BASE}/notifications?userId=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        // Add title/priority for demo (backend doesn't provide)
+        const withMeta = data.map(n => ({
+          ...n,
+          title: n.type === 'assignment' ? 'New Event Assignment' : n.type === 'update' ? 'Event Update' : 'Event Reminder',
+          priority: n.type === 'assignment' ? 'high' : n.type === 'update' ? 'medium' : 'medium',
+          timestamp: new Date(n.timestamp)
+        }));
+        setNotifications(withMeta);
+        setUnreadCount(withMeta.filter(n => !n.isRead).length);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Failed to load notifications.');
+        setLoading(false);
+      });
   }, []);
 
   const getFilteredNotifications = () => {
@@ -82,10 +44,12 @@ function Notification() {
     return notifications.filter(n => n.type === filter);
   };
 
+
+  // For demo, update local state only (backend does not support update/delete)
   const markAsRead = (id) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
+    setNotifications(prev =>
+      prev.map(notification =>
+        notification.id === id
           ? { ...notification, isRead: true }
           : notification
       )
@@ -94,7 +58,7 @@ function Notification() {
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(notification => ({ ...notification, isRead: true }))
     );
     setUnreadCount(0);
@@ -135,6 +99,13 @@ function Notification() {
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
     return timestamp.toLocaleDateString();
   };
+
+  if (loading) {
+    return <div className="notifications-container"><div className="notifications-header"><h2>Loading notifications...</h2></div></div>;
+  }
+  if (error) {
+    return <div className="notifications-container"><div className="notifications-header"><h2 style={{color: 'red'}}>{error}</h2></div></div>;
+  }
 
   return (
     <div className="notifications-container">

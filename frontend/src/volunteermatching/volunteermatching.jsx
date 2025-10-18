@@ -1,23 +1,33 @@
+
 import React, { useMemo, useState, useEffect } from "react";
 import "./VolunteerMatching.css";
 
-// Mock Data for Assignmet 1 purposes
-const MOCK_VOLUNTEERS = [
-  { id: 1, name: "Alex Johnson", skills: ["First Aid", "Spanish", "Crowd Control"], availability: ["2025-10-01", "2025-10-05", "2025-10-12"], city: "Houston" },
-  { id: 2, name: "Taylor Kim", skills: ["Data Entry", "Photography"], availability: ["2025-10-05", "2025-10-07"], city: "Houston" },
-  { id: 3, name: "Mason Rivera", skills: ["Spanish", "Food Handling", "Logistics"], availability: ["2025-10-12", "2025-10-13", "2025-10-20"], city: "Katy" },
-];
-
-const MOCK_EVENTS = [
-  { id: 101, name: "Community Health Fair", requiredSkills: ["First Aid", "Spanish"], date: "2025-10-01", location: "Houston", description: "Basic vitals, check-in, guiding attendees." },
-  { id: 102, name: "Food Bank Drive", requiredSkills: ["Food Handling", "Logistics"], date: "2025-10-12", location: "Katy", description: "Sorting and distribution of non-perishables." },
-  { id: 103, name: "City Marathon Volunteer Crew", requiredSkills: ["Crowd Control"], date: "2025-10-05", location: "Houston", description: "Course marshals and hydration stations." },
-  { id: 104, name: "Community Newsletter Day", requiredSkills: ["Data Entry", "Photography"], date: "2025-10-07", location: "Houston", description: "Capture photos and digitize signups." },
-];
+const API_BASE = "/api";
 
 export default function VolunteerMatching() {
-  const [volunteers] = useState(MOCK_VOLUNTEERS);
-  const [events] = useState(MOCK_EVENTS);
+
+  const [volunteers, setVolunteers] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      fetch(`${API_BASE}/volunteers`).then(r => r.json()),
+      fetch(`${API_BASE}/events`).then(r => r.json())
+    ])
+      .then(([vols, evts]) => {
+        setVolunteers(vols);
+        setEvents(evts);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError("Failed to load volunteers or events.");
+        setLoading(false);
+      });
+  }, []);
 
 
   function skillOverlap(volunteer, event) {
@@ -46,26 +56,59 @@ export default function VolunteerMatching() {
     return { event: best.event, meta: { overlap: best.overlap, reqLen: best.reqLen } };
   }
 
-  const [selectedVolunteerId, setSelectedVolunteerId] = useState(MOCK_VOLUNTEERS[0]?.id ?? null);
+
+  // Wait for volunteers/events to load before setting default
+  const [selectedVolunteerId, setSelectedVolunteerId] = useState(null);
+  useEffect(() => {
+    if (volunteers.length > 0 && selectedVolunteerId == null) {
+      setSelectedVolunteerId(volunteers[0].id);
+    }
+  }, [volunteers, selectedVolunteerId]);
+
   const selectedVolunteer = useMemo(() => volunteers.find((v) => v.id === Number(selectedVolunteerId)), [selectedVolunteerId, volunteers]);
   const suggested = useMemo(() => bestBySkills(selectedVolunteer, events), [selectedVolunteer, events]);
-  const [selectedEventId, setSelectedEventId] = useState(suggested.event?.id ?? "");
+  const [selectedEventId, setSelectedEventId] = useState("");
 
   useEffect(() => {
     setSelectedEventId(suggested.event?.id ?? "");
   }, [suggested.event?.id]);
 
   const [lastSaved, setLastSaved] = useState(null);
-  function handleSave() {
+
+  const [saveStatus, setSaveStatus] = useState(null); // {type: 'success'|'error', message: string}
+  async function handleSave() {
     const event = events.find((e) => e.id === Number(selectedEventId));
     if (!selectedVolunteer || !event) return;
     if (!isEligible(selectedVolunteer, event)) return;
 
-    setLastSaved({ volunteer: selectedVolunteer.name, event: event?.name, when: new Date().toLocaleString() });
+    setSaveStatus(null);
+    try {
+      const res = await fetch(`${API_BASE}/match`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ volunteerId: selectedVolunteer.id, eventId: event.id })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveStatus({ type: "error", message: data.error || "Failed to match volunteer." });
+        return;
+      }
+      setLastSaved({ volunteer: selectedVolunteer.name, event: event?.name, when: new Date().toLocaleString() });
+      setSaveStatus({ type: "success", message: `Matched ${selectedVolunteer.name} to ${event.name}` });
+    } catch (err) {
+      setSaveStatus({ type: "error", message: "Network error. Please try again." });
+    }
   }
 
   const eligibleEventIds = useMemo(() => new Set(events.filter((e) => isEligible(selectedVolunteer, e)).map((e) => e.id)), [selectedVolunteer, events]);
   const canSave = selectedEventId && eligibleEventIds.has(Number(selectedEventId));
+
+  if (loading) {
+    return <div className="vm-container"><div className="vm-card"><h2>Loading volunteers and events...</h2></div></div>;
+  }
+  if (error) {
+    return <div className="vm-container"><div className="vm-card"><h2 style={{color: 'red'}}>{error}</h2></div></div>;
+  }
 
   return (
     <div className="vm-container">
@@ -128,6 +171,9 @@ export default function VolunteerMatching() {
           <button onClick={() => window.location.reload()}>Reset</button>
         </div>
 
+        {saveStatus && (
+          <div className={`vm-save-status ${saveStatus.type}`}>{saveStatus.message}</div>
+        )}
         {lastSaved && (
           <div className="vm-saved">Saved: {lastSaved.volunteer} → {lastSaved.event} ({lastSaved.when})</div>
         )}

@@ -179,6 +179,8 @@ export default function AccountManage({ states = [], skills = [] }) {
           {dates.map(date => (
             <div key={date}>
               {date} <button type="button" onClick={() => removeDate(date)}>Remove</button>
+              {/* add a hidden input so the date is submitted with the form */}
+              <input type="hidden" name="availability" value={date} />
             </div>
           ))}
         </div>
@@ -186,20 +188,48 @@ export default function AccountManage({ states = [], skills = [] }) {
     );
   }
 
+  // Serialize form with support for repeated fields (checkbox groups, repeated names)
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const fd = new FormData(form);
+    const data = {};
+    for (const [key, value] of fd.entries()) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        if (Array.isArray(data[key])) data[key].push(value);
+        else data[key] = [data[key], value];
+      } else {
+        data[key] = value;
+      }
+    }
+
+    try {
+      const res = await fetch("/api/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      const saved = await res.json();
+      console.log("Saved account:", saved);
+      setShowPopup(true);
+      // Optionally reset form here: form.reset();
+    } catch (err) {
+      console.error("Failed to save account", err);
+      alert("Failed to save profile. See console for details.");
+    }
+  }
+
   return (
     <div className="account-manage-container">
       <form
         className="account-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const form = e.target;
-          if (!form.checkValidity()) {
-            form.reportValidity(); // show browser validation messages
-            return;
-          }
-          console.log("Form Data:", formData);
-          setShowPopup(true); // show success popup
-        }}
+        onSubmit={handleSubmit}
       >
         <h2 className="text-2xl font-bold mb-4">Account Management</h2>
         <FullNameField />
