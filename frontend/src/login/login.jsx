@@ -26,9 +26,9 @@ export default function Login() {
       const storedSession = sessionStorage.getItem("currentUser");
       if (storedLocal) {
         setRemember(true);
-        navigate("/VolunteerLog");
+        navigate("/");
       } else if (storedSession) {
-        navigate("/VolunteerLog");
+        navigate("/");
       }
     } catch (e) {
       // ignore storage errors
@@ -50,36 +50,35 @@ export default function Login() {
     return valid;
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    setMessage("");
-    if (!validate()) return;
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setMessage("");
+  if (!validate()) return;
 
-    const userData = JSON.parse(localStorage.getItem(email));
-    if (userData && userData.password === password) {
-      const current = { name: userData.name || email, email };
-      // persist according to remember checkbox
-      try {
-        if (remember) {
-          localStorage.setItem("currentUser", JSON.stringify(current));
-          // ensure session copy removed
-          sessionStorage.removeItem("currentUser");
-        } else {
-          sessionStorage.setItem("currentUser", JSON.stringify(current));
-          // don't keep in localStorage if previously remembered
-          localStorage.removeItem("currentUser");
-        }
-      } catch (e) {
-        // ignore storage errors
-      }
+  try {
+    const res = await fetch("http://localhost:5050/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: email, password }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      // save JWT token for future use
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("currentUser", JSON.stringify({ email }));
 
       setMessage("Login successful");
-      navigate("/VolunteerLog");
+      navigate("/");
     } else {
-      setErrors((prev) => ({ ...prev, password: "Email or password is incorrect" }));
-      setMessage("Email or password is incorrect");
+      setMessage(data.message || "Invalid email or password");
     }
-  };
+  } catch (err) {
+    setMessage("Login failed. Please try again.");
+  }
+};
+
 
   const openReset = () => {
     setResetMessage("");

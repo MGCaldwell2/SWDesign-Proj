@@ -1,12 +1,28 @@
 import './home.css';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 function Home() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Auto-clear success message after a few seconds
+  // ✅ Read stored user on load
+  useEffect(() => {
+    try {
+      const localUser = localStorage.getItem("currentUser");
+      const sessionUser = sessionStorage.getItem("currentUser");
+      if (localUser) {
+        setCurrentUser(JSON.parse(localUser));
+      } else if (sessionUser) {
+        setCurrentUser(JSON.parse(sessionUser));
+      }
+    } catch (e) {
+      console.error("Failed to read stored user", e);
+    }
+  }, []);
+
+  // ✅ Clear success message after a few seconds
   useEffect(() => {
     if (location.state?.successMessage) {
       const timer = setTimeout(() => {
@@ -16,11 +32,29 @@ function Home() {
     }
   }, [location, navigate]);
 
+  // ✅ Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser");
+    sessionStorage.removeItem("currentUser");
+    setCurrentUser(null);
+    navigate("/Login");
+  };
+
   return (
     <div className="home-container">
       <header className="home-header">
         <h1>Volunteer Management System</h1>
         <p>Welcome to the volunteer management platform</p>
+
+        {/* ✅ Logged in banner */}
+        {currentUser && (
+          <div className="logged-in-banner">
+            Logged in as <strong>{currentUser.email}</strong>
+            <button className="logout-btn" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        )}
       </header>
 
       {/* ✅ Success Message Banner */}
@@ -104,12 +138,12 @@ function Home() {
                 <p>View and update created events</p>
               </Link>
 
-
               <Link to="/admin/notifications" className="nav-card">
                 <div className="card-icon">📢</div>
                 <h3>Send Notification (Admin)</h3>
                 <p>Send notifications to volunteers</p>
               </Link>
+
               <Link to="/notifications" className="nav-card">
                 <div className="card-icon">🔔</div>
                 <h3>Notifications</h3>
