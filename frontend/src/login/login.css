@@ -6,149 +6,205 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Body and page background */
+/* Body and page background - keep global minimal to avoid breaking app layout */
 body, html {
   height: 100%;
   background: #f0f4f8;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
-/* Login page container */
+/* Login page wrapper centers the login card without affecting global layout */
 .login-page {
   width: 100%;
-  max-width: 400px;
-  padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
 }
 
 /* Login form container */
 .login-container {
+  width: 100%;
+  max-width: 480px;
   background: #ffffff;
-  padding: 30px;
   border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.08);
+  box-sizing: border-box;
+}
+
+.login-header {
+  margin-bottom: 12px;
   text-align: center;
 }
 
-/* Header */
-.login-container h2 {
-  margin-bottom: 20px;
-  color: #333;
+.login-header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
 }
 
-/* Inputs */
-.login-container input[type="email"],
-.login-container input[type="password"],
-.modal input[type="email"] {
+.login-header p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.login-content {
+  margin-top: 8px;
+}
+
+.form-field {
+  margin-bottom: 1.25rem;
+}
+
+.form-field label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.form-field input {
   width: 100%;
-  padding: 12px;
-  margin-bottom: 20px;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  border: 1px solid #ccc;
+  font-size: 1rem;
+  color: #111827;
+  background: #ffffff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.form-field input:focus {
   outline: none;
-  background: #fff;
-  color: #333;
-  font-size: 16px;
-  transition: all 0.3s ease;
+  border-color: #667eea;
+  box-shadow: 0 0 0 6px rgba(102,126,234,0.06);
 }
 
-.login-container input:focus,
-.modal input:focus {
-  border-color: #2575fc;
-  box-shadow: 0 0 5px rgba(37,117,252,0.3);
+.form-field input.error {
+  border-color: #ef4444;
 }
 
-/* Remember me checkbox */
-.remember-me {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.remember-me input {
-  margin-right: 8px;
-}
-
-/* Submit button */
-.submit-btn {
+.login-button {
   width: 100%;
-  padding: 12px;
-  background: #2575fc;
-  color: #fff;
-  font-size: 16px;
-  font-weight: bold;
+  padding: 0.9rem;
+  background: linear-gradient(90deg,#6366f1,#7c3aed);
+  color: #ffffff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: transform 0.08s ease, background 0.12s ease;
+  box-shadow: 0 6px 18px rgba(99,102,241,0.14);
 }
 
-.submit-btn:hover {
-  background: #6a11cb;
+.login-button:hover { transform: translateY(-2px); background: linear-gradient(90deg,#5458e6,#6c40e0); }
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.35rem;
 }
 
-/* Cancel button */
-.cancel-btn {
-  padding: 12px;
-  background: #ccc;
-  color: #333;
+.login-message { margin-top: 1rem; padding: 0.6rem; border-radius: 8px; font-weight: 600; text-align: center; }
+
+.login-message.success { background: #ecfdf5; color: #065f46; border: 1px solid #bbf7d0; }
+.login-message.error { background: #ffefef; color: #7f1d1d; border: 1px solid #fecaca; }
+
+.forgot-link {
+  background: transparent;
   border: none;
-  border-radius: 8px;
+  color: #4f46e5;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.cancel-btn:hover {
-  background: #aaa;
-}
-
-/* Register / forgot password */
-.register-text {
-  margin-top: 15px;
-  font-size: 14px;
-}
-
-.register-text button {
-  background: none;
-  border: none;
-  color: #2575fc;
-  cursor: pointer;
-  font-weight: bold;
-  margin-left: 5px;
-}
-
-.register-text button:hover {
+  padding: 0;
+  margin-left: 12px;
   text-decoration: underline;
+  align-self: center;
 }
 
-/* Modal overlay */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.4);
+.forgot-link:hover {
+  color: #3730a3;
+}
+
+/* Reset card (inline panel) */
+.reset-card {
+  margin-top: 18px;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid #e6eefb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
+}
+
+.reset-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.cancel-button {
+  background: #e5e7eb;
+  color: #111827;
+  border: none;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cancel-button:hover {
+  background: #d1d5db;
+}
+
+/* ensure reset inputs match login inputs */
+.reset-card .form-field input {
+  background: #ffffff;
+}
+
+/* controls for remember me and other actions */
+.controls-row {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  z-index: 100;
+  gap: 12px;
+  margin-top: 6px;
 }
 
-/* Modal box */
-.modal {
-  background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-  text-align: center;
+.remember-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
 }
 
-.modal-buttons {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
+.remember-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #6366f1; /* nice purple accent where supported */
+}
+
+/* make sure small-screen layout stacks controls */
+@media (max-width: 520px) {
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .controls-row > div { display: flex; justify-content: space-between; }
+}
+
+/* keep existing responsive rules */
+@media (max-width: 480px) {
+  .login-container { padding: 18px; border-radius: 10px; }
+  .login-header h1 { font-size: 1.25rem; }
+  .forgot-link { margin-left: 8px; }
+  .reset-card { padding: 12px; }
 }

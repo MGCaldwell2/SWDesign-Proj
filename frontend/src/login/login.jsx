@@ -1,101 +1,244 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./login.css";
 
 export default function Login() {
-  const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({ email: "", password: "" });
+  const [message, setMessage] = useState("");
+
+  // Forgot password state
+  const [showReset, setShowReset] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
 
-  const handleForgotPassword = () => {
-    setShowModal(true);
-  };
+  // Remember me
+  const [remember, setRemember] = useState(false);
 
-  const handleModalClose = () => {
-    setShowModal(false);
-    setResetEmail("");
-  };
-
-  const handleResetPassword = () => {
-    if (resetEmail.trim() === "") {
-      alert("Please enter your email.");
-      return;
+  useEffect(() => {
+    // If user already remembered (localStorage) or has session (sessionStorage), auto navigate
+    try {
+      const storedLocal = localStorage.getItem("currentUser");
+      const storedSession = sessionStorage.getItem("currentUser");
+      if (storedLocal) {
+        setRemember(true);
+        navigate("/VolunteerLog");
+      } else if (storedSession) {
+        navigate("/VolunteerLog");
+      }
+    } catch (e) {
+      // ignore storage errors
     }
-    alert(`Password reset link sent to ${resetEmail}`);
-    handleModalClose();
+  }, [navigate]);
+
+  const validate = () => {
+    const newErrors = { email: "", password: "" };
+    let valid = true;
+    if (!email) {
+      newErrors.email = "Email is required";
+      valid = false;
+    }
+    if (!password) {
+      newErrors.password = "Password is required";
+      valid = false;
+    }
+    setErrors(newErrors);
+    return valid;
   };
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // Add login logic here
-    alert(`Logged in as ${email}`);
+    setMessage("");
+    if (!validate()) return;
+
+    const userData = JSON.parse(localStorage.getItem(email));
+    if (userData && userData.password === password) {
+      const current = { name: userData.name || email, email };
+      // persist according to remember checkbox
+      try {
+        if (remember) {
+          localStorage.setItem("currentUser", JSON.stringify(current));
+          // ensure session copy removed
+          sessionStorage.removeItem("currentUser");
+        } else {
+          sessionStorage.setItem("currentUser", JSON.stringify(current));
+          // don't keep in localStorage if previously remembered
+          localStorage.removeItem("currentUser");
+        }
+      } catch (e) {
+        // ignore storage errors
+      }
+
+      setMessage("Login successful");
+      navigate("/VolunteerLog");
+    } else {
+      setErrors((prev) => ({ ...prev, password: "Email or password is incorrect" }));
+      setMessage("Email or password is incorrect");
+    }
+  };
+
+  const openReset = () => {
+    setResetMessage("");
+    setResetEmail(email || "");
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowReset(true);
+  };
+
+  const handleReset = (e) => {
+    e.preventDefault();
+    setResetMessage("");
+
+    if (!resetEmail) {
+      setResetMessage("Please enter your account email.");
+      return;
+    }
+    if (!newPassword) {
+      setResetMessage("Please enter a new password.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setResetMessage("Passwords do not match.");
+      return;
+    }
+
+    const stored = localStorage.getItem(resetEmail);
+    if (!stored) {
+      setResetMessage("No account found for that email.");
+      return;
+    }
+
+    try {
+      const userObj = JSON.parse(stored);
+      userObj.password = newPassword;
+      localStorage.setItem(resetEmail, JSON.stringify(userObj));
+      setResetMessage("Password updated successfully. You can now sign in.");
+      // pre-fill login email and clear password
+      setEmail(resetEmail);
+      setPassword("");
+      setShowReset(false);
+    } catch {
+      setResetMessage("Failed to update password. Try again.");
+    }
   };
 
   return (
     <div className="login-page">
       <div className="login-container">
-        <h2>Login</h2>
-        <form onSubmit={handleLogin}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ background: "#fff", color: "#333" }}
-            autoComplete="username"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ background: "#fff", color: "#333" }}
-            autoComplete="current-password"
-            required
-          />
-          <div className="remember-me">
-            <input type="checkbox" id="remember" />
-            <label htmlFor="remember">Remember Me</label>
-          </div>
-          <button type="submit" className="submit-btn">
-            Login
-          </button>
-        </form>
-        <div className="register-text">
-          Forgot password?
-          <button type="button" onClick={handleForgotPassword}>
-            Click here
-          </button>
+        <div className="login-header">
+          <h1>Sign in</h1>
+          <p>Please enter your credentials to continue</p>
+        </div>
+
+        <div className="login-content">
+          <form onSubmit={handleLogin} noValidate>
+            <div className="form-field">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className={errors.email ? "error" : ""}
+                autoComplete="email"
+              />
+              {errors.email && <div className="error-message">{errors.email}</div>}
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className={errors.password ? "error" : ""}
+                autoComplete="current-password"
+              />
+              {errors.password && <div className="error-message">{errors.password}</div>}
+            </div>
+
+            <div className="controls-row">
+              <label className="remember-row">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                />{" "}
+                Remember me
+              </label>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button type="submit" className="login-button">Sign In</button>
+                <button type="button" className="forgot-link" onClick={openReset}>Forgot password?</button>
+              </div>
+            </div>
+
+            {message && (
+              <div className={`login-message ${message.toLowerCase().includes("success") ? "success" : "error"}`}>
+                {message}
+              </div>
+            )}
+          </form>
+
+          {showReset && (
+            <div className="reset-card" role="dialog" aria-label="Reset password">
+              <h3>Reset password</h3>
+              <form onSubmit={handleReset}>
+                <div className="form-field">
+                  <label htmlFor="resetEmail">Account email</label>
+                  <input
+                    id="resetEmail"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="newPassword">New password</label>
+                  <input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New password"
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="confirmPassword">Confirm password</label>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="submit" className="login-button">Update password</button>
+                  <button type="button" className="cancel-button" onClick={() => setShowReset(false)}>Cancel</button>
+                </div>
+
+                {resetMessage && (
+                  <div className={`login-message ${resetMessage.toLowerCase().includes("success") ? "success" : "error"}`}>
+                    {resetMessage}
+                  </div>
+                )}
+              </form>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>Reset Password</h3>
-            <p>Enter your email to receive a reset link:</p>
-            <input
-              type="email"
-              placeholder="Your email"
-              value={resetEmail}
-              onChange={(e) => setResetEmail(e.target.value)}
-              style={{ background: "#fff", color: "#333" }}
-              autoComplete="username"
-              required
-            />
-            <div className="modal-buttons">
-              <button className="submit-btn" onClick={handleResetPassword}>
-                Send Link
-              </button>
-              <button className="cancel-btn" onClick={handleModalClose}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";   // 👈 import navigate
+import { useNavigate } from "react-router-dom";
 import "./EventManageForm.css";
 
 export default function EventManageForm() {
@@ -31,7 +31,7 @@ export default function EventManageForm() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const navigate = useNavigate();  // 👈 hook for navigation
+  const navigate = useNavigate();
 
   const toggleSkill = (skill) => {
     setFormData((prev) => {
@@ -150,7 +150,6 @@ export default function EventManageForm() {
           Create Event
         </button>
 
-        {/* 👇 Back to Home button */}
         <button
           type="button"
           className="event-form-btn"
