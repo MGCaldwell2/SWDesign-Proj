@@ -69,33 +69,29 @@ html, body, #root {
   align-items: center;
 }
 
+/* 🆕 Updated — Skills list now fits inside the box */
 .checkbox-menu-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  width: 100%;
-  box-sizing: border-box;
-  
+  position: static;                 /* no floating */
   background: #222;
   color: #f0f0f0;
   border: 1px solid #555;
   border-radius: 6px;
-  margin-top: 4px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-  z-index: 1000;
-  padding: 8px 0;
+  padding: 12px;
+  margin-top: 8px;
 
-  max-height: 200px;
-  overflow-y: auto;
+  display: flex;                    /* neatly align checkboxes */
+  flex-wrap: wrap;
+  gap: 8px;
+
+  max-height: none;
+  box-shadow: none;
 }
-
 
 .checkbox-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 4px 8px;
   cursor: pointer;
   color: #f0f0f0;
 }
