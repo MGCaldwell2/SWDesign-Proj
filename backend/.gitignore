@@ -1,2 +1,5 @@
 node_modules
 .env
+client-cert.pem
+server-ca.pem
+client-key.pem
