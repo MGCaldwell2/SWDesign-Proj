@@ -8,30 +8,23 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
-
-  // Forgot password state
-  const [showReset, setShowReset] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [resetMessage, setResetMessage] = useState("");
-
-  // Remember me
   const [remember, setRemember] = useState(false);
 
   useEffect(() => {
-    // If user already remembered (localStorage) or has session (sessionStorage), auto navigate
+    // Auto-login if user already remembered
     try {
-      const storedLocal = localStorage.getItem("currentUser");
+      const storedUser = localStorage.getItem("currentUser");
       const storedSession = sessionStorage.getItem("currentUser");
-      if (storedLocal) {
-        setRemember(true);
-        navigate("/");
-      } else if (storedSession) {
-        navigate("/");
+      if (storedUser || storedSession) {
+        const user = storedUser ? JSON.parse(storedUser) : JSON.parse(storedSession);
+        if (user.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/volunteer-history");
+        }
       }
     } catch (e) {
-      // ignore storage errors
+      console.error(e);
     }
   }, [navigate]);
 
@@ -50,78 +43,40 @@ export default function Login() {
     return valid;
   };
 
-const handleLogin = async (e) => {
-  e.preventDefault();
-  setMessage("");
-  if (!validate()) return;
-
-  try {
-    const res = await fetch("http://localhost:5050/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: email, password }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      // save JWT token for future use
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("currentUser", JSON.stringify({ email }));
-
-      setMessage("Login successful");
-      navigate("/");
-    } else {
-      setMessage(data.message || "Invalid email or password");
-    }
-  } catch (err) {
-    setMessage("Login failed. Please try again.");
-  }
-};
-
-
-  const openReset = () => {
-    setResetMessage("");
-    setResetEmail(email || "");
-    setNewPassword("");
-    setConfirmPassword("");
-    setShowReset(true);
-  };
-
-  const handleReset = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setResetMessage("");
-
-    if (!resetEmail) {
-      setResetMessage("Please enter your account email.");
-      return;
-    }
-    if (!newPassword) {
-      setResetMessage("Please enter a new password.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setResetMessage("Passwords do not match.");
-      return;
-    }
-
-    const stored = localStorage.getItem(resetEmail);
-    if (!stored) {
-      setResetMessage("No account found for that email.");
-      return;
-    }
+    setMessage("");
+    if (!validate()) return;
 
     try {
-      const userObj = JSON.parse(stored);
-      userObj.password = newPassword;
-      localStorage.setItem(resetEmail, JSON.stringify(userObj));
-      setResetMessage("Password updated successfully. You can now sign in.");
-      // pre-fill login email and clear password
-      setEmail(resetEmail);
-      setPassword("");
-      setShowReset(false);
-    } catch {
-      setResetMessage("Failed to update password. Try again.");
+      const res = await fetch("http://localhost:5050/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Save user info and JWT token
+        const storage = remember ? localStorage : sessionStorage;
+        storage.setItem("token", data.token);
+        storage.setItem("currentUser", JSON.stringify({ email, role: data.role }));
+
+        setMessage("Login successful");
+
+        // Redirect based on role
+        if (data.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/volunteer-history");
+        }
+      } else {
+        setMessage(data.message || "Invalid email or password");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("Login failed. Please try again.");
     }
   };
 
@@ -173,10 +128,7 @@ const handleLogin = async (e) => {
                 Remember me
               </label>
 
-              <div style={{ display: "flex", gap: 8 }}>
-                <button type="submit" className="login-button">Sign In</button>
-                <button type="button" className="forgot-link" onClick={openReset}>Forgot password?</button>
-              </div>
+              <button type="submit" className="login-button">Sign In</button>
             </div>
 
             {message && (
@@ -185,57 +137,6 @@ const handleLogin = async (e) => {
               </div>
             )}
           </form>
-
-          {showReset && (
-            <div className="reset-card" role="dialog" aria-label="Reset password">
-              <h3>Reset password</h3>
-              <form onSubmit={handleReset}>
-                <div className="form-field">
-                  <label htmlFor="resetEmail">Account email</label>
-                  <input
-                    id="resetEmail"
-                    type="email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    placeholder="you@example.com"
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label htmlFor="newPassword">New password</label>
-                  <input
-                    id="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="New password"
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label htmlFor="confirmPassword">Confirm password</label>
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm password"
-                  />
-                </div>
-
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button type="submit" className="login-button">Update password</button>
-                  <button type="button" className="cancel-button" onClick={() => setShowReset(false)}>Cancel</button>
-                </div>
-
-                {resetMessage && (
-                  <div className={`login-message ${resetMessage.toLowerCase().includes("success") ? "success" : "error"}`}>
-                    {resetMessage}
-                  </div>
-                )}
-              </form>
-            </div>
-          )}
         </div>
       </div>
     </div>
