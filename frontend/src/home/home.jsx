@@ -40,6 +40,24 @@ function Home() {
     navigate("/Login");
   };
 
+  // Demo login for quick access
+  const handleQuickAccess = (role = 'user') => {
+    const demoUser = role === 'admin' 
+      ? { email: 'admin@demo.com', role: 'admin' }
+      : { email: 'volunteer@demo.com', role: 'user' };
+    
+    localStorage.setItem("currentUser", JSON.stringify(demoUser));
+    localStorage.setItem("token", "demo-token-" + role);
+    setCurrentUser(demoUser);
+    
+    // Navigate to appropriate dashboard
+    if (role === 'admin') {
+      navigate("/admin/dashboard");
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
   return (
     <div className="home-container">
       <header className="home-header">
@@ -80,6 +98,24 @@ function Home() {
 
       <main className="home-main">
         <div className="navigation-grid">
+          {/* Dashboards Section */}
+          <section className="nav-section">
+            <h2>Dashboards</h2>
+            <div className="nav-cards">
+              <Link to="/dashboard" className="nav-card">
+                <div className="card-icon">📊</div>
+                <h3>User Dashboard</h3>
+                <p>View your volunteer overview and stats</p>
+              </Link>
+
+              <Link to="/admin/dashboard" className="nav-card">
+                <div className="card-icon">🛡️</div>
+                <h3>Admin Dashboard</h3>
+                <p>Manage volunteers, events, and reports</p>
+              </Link>
+            </div>
+          </section>
+
           {/* User Management Section */}
           <section className="nav-section">
             <h2>User Management</h2>
@@ -167,6 +203,28 @@ function Home() {
               </Link>
             </div>
           </div>
+
+          {/* Quick Demo Access - Only show if not logged in */}
+          {!currentUser && (
+            <div className="welcome-card demo-access">
+              <h2>🚀 Quick Demo Access</h2>
+              <p>Try the dashboards without logging in</p>
+              <div className="quick-actions">
+                <button 
+                  onClick={() => handleQuickAccess('user')} 
+                  className="cta-button demo-user"
+                >
+                  👤 Try User Dashboard
+                </button>
+                <button 
+                  onClick={() => handleQuickAccess('admin')} 
+                  className="cta-button demo-admin"
+                >
+                  🛡️ Try Admin Dashboard
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </div>

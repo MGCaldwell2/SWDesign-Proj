@@ -79,6 +79,27 @@ const handleLogin = async (e) => {
   }
 };
 
+// Demo/Test login - bypasses authentication
+const handleDemoLogin = (role = 'user') => {
+  const demoUser = role === 'admin' 
+    ? { email: 'admin@demo.com', role: 'admin' }
+    : { email: 'volunteer@demo.com', role: 'user' };
+  
+  localStorage.setItem("currentUser", JSON.stringify(demoUser));
+  localStorage.setItem("token", "demo-token-" + role);
+  
+  setMessage(`Logged in as demo ${role}`);
+  
+  // Navigate to appropriate dashboard
+  setTimeout(() => {
+    if (role === 'admin') {
+      navigate("/admin/dashboard");
+    } else {
+      navigate("/dashboard");
+    }
+  }, 500);
+};
+
 
   const openReset = () => {
     setResetMessage("");
@@ -185,6 +206,37 @@ const handleLogin = async (e) => {
               </div>
             )}
           </form>
+
+          {/* Demo Login Buttons */}
+          <div className="demo-login-section">
+            <div className="divider">
+              <span>Or try demo access</span>
+            </div>
+            <div className="demo-buttons">
+              <button 
+                type="button" 
+                className="demo-button user-demo"
+                onClick={() => handleDemoLogin('user')}
+              >
+                <span className="demo-icon">👤</span>
+                <div>
+                  <strong>Demo Volunteer</strong>
+                  <small>Access user dashboard</small>
+                </div>
+              </button>
+              <button 
+                type="button" 
+                className="demo-button admin-demo"
+                onClick={() => handleDemoLogin('admin')}
+              >
+                <span className="demo-icon">🛡️</span>
+                <div>
+                  <strong>Demo Admin</strong>
+                  <small>Access admin dashboard</small>
+                </div>
+              </button>
+            </div>
+          </div>
 
           {showReset && (
             <div className="reset-card" role="dialog" aria-label="Reset password">
