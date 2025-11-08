@@ -8,30 +8,34 @@ import volunteermatchingRouter from "./volunteermatching/volunteermatching.js";
 import notificationRouter from "./notification/notification.js";
 
 dotenv.config();
+
 const app = express();
 
+// --- Middleware ---
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// --- Routes ---
+// Auth and events
 app.use("/api/auth", authRoutes);
 //app.use("/api/events", eventRoutes);
 
+// Accounts
+app.use("/api/accounts", accountRouter);
 
-
+// Volunteer matching and notifications
 app.use("/api", volunteermatchingRouter);
 app.use("/api", notificationRouter);
 
-// --- Hello and Root ---
+// --- Test and root endpoints ---
 app.get("/api/hello", (req, res) => {
   res.json({ message: "Hello from the server 👋" });
 });
 
-app.use("/api/accounts", accountRouter);
-
 app.get("/", (req, res) => {
-    res.send("Backend is running 🚀");
-  });
-  
+  res.send("Backend is running 🚀");
+});
+
+// --- Start server ---
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
