@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import "./history.css";
 
 export default function VolunteerLog() {
@@ -11,74 +12,64 @@ export default function VolunteerLog() {
   const [logs, setLogs] = useState([]);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [expandedUser, setExpandedUser] = useState(null); // track which user row is expanded
+  const [expandedUser, setExpandedUser] = useState(null);
 
   useEffect(() => {
-    const savedLogs = localStorage.getItem("volunteerLogs");
-    if (savedLogs) {
-      setLogs(JSON.parse(savedLogs));
-    }
+    // Fetch volunteer logs from backend
+    axios
+      .get("http://localhost:3001/api/volunteer-history")
+      .then((res) => setLogs(res.data))
+      .catch((err) => console.error(err));
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("volunteerLogs", JSON.stringify(logs));
-  }, [logs]);
-
-  const handleAddEvent = () => {
+  const handleAddEvent = async () => {
     setError("");
 
-    if (!name.trim()) {
-      setError("Name is required.");
+    if (!name.trim() || !email.trim() || !phone.trim() || !progress.trim() || !hours) {
+      setError("All fields are required.");
       return;
     }
-    if (!email.trim()) {
-      setError("Email is required.");
-      return;
-    }
-    if (!phone.trim()) {
-      setError("Phone is required.");
-      return;
-    }
-    if (!progress.trim()) {
-      setError("Description is required.");
-      return;
-    }
+
     if (progress.length > 200) {
       setError("Description cannot exceed 200 characters.");
       return;
     }
-    if (!hours.toString().trim()) {
-      setError("Hours are required.");
-      return;
-    }
+
     if (isNaN(hours) || parseFloat(hours) <= 0) {
       setError("Hours must be a positive number.");
       return;
     }
 
-    const newLog = {
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
-      description: progress.trim(),
-      hours: parseFloat(hours),
-      status,
-      timestamp: new Date().toLocaleString(),
-    };
+    try {
+      // Find user_id based on email (backend should return or create user)
+      const userRes = await axios.post("http://localhost:3001/api/get-or-create-user", {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+      });
 
-    setLogs((prev) => [...prev, newLog]);
-    setName("");
-    setEmail("");
-    setPhone("");
-    setProgress("");
-    setHours("");
-    setStatus("Completed");
-    setShowForm(false);
+      const userId = userRes.data.user_id;
+
+      // Add volunteer history
+      const logRes = await axios.post("http://localhost:3001/api/volunteer-history", {
+        user_id: userId,
+        event_description: progress.trim(),
+        hours: parseFloat(hours),
+        status,
+      });
+
+      // Update frontend state
+      setLogs((prev) => [...prev, logRes.data]);
+      setName(""); setEmail(""); setPhone(""); setProgress(""); setHours(""); setStatus("Completed"); setShowForm(false);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to add event. Make sure the server is running.");
+    }
   };
 
-  // Group logs by email (case-insensitive) so same email combines totals
+  // Group logs by email
   const groupedLogs = logs.reduce((acc, log) => {
-    const key = (log.email || "").toLowerCase().trim();
+    const key = log.email.toLowerCase().trim();
     if (!acc[key]) {
       acc[key] = {
         email: key,
@@ -89,14 +80,10 @@ export default function VolunteerLog() {
       };
     }
     acc[key].totalHours += Number(log.hours) || 0;
-    // Use latest non-empty name/phone if provided
-    if (log.name && log.name.trim()) acc[key].name = log.name.trim();
-    if (log.phone && log.phone.trim()) acc[key].phone = log.phone.trim();
     acc[key].events.push(log);
     return acc;
   }, {});
 
-  // Convert grouped logs to sorted array
   const sortedVolunteers = Object.values(groupedLogs).sort((a, b) =>
     a.name.localeCompare(b.name)
   );
@@ -138,14 +125,12 @@ export default function VolunteerLog() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
-
           <textarea
             placeholder="Describe what you worked on (max 200 chars)..."
             value={progress}
             onChange={(e) => setProgress(e.target.value)}
             maxLength={200}
           />
-
           <input
             type="number"
             min="0.1"
@@ -154,7 +139,6 @@ export default function VolunteerLog() {
             value={hours}
             onChange={(e) => setHours(e.target.value)}
           />
-
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="Completed">Completed</option>
             <option value="In Progress">In Progress</option>
@@ -181,13 +165,13 @@ export default function VolunteerLog() {
         {sortedVolunteers.length === 0 ? (
           <p>No events logged yet.</p>
         ) : (
-          <table className="volunteer-table" style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}>
+          <table className="volunteer-table">
             <thead style={{ background: "linear-gradient(90deg, #667eea, #764ba2)", color: "white" }}>
               <tr>
-                <th style={{ fontSize: "17px", fontWeight: 700 }}>Name</th>
-                <th style={{ fontSize: "17px", fontWeight: 700 }}>Phone</th>
-                <th style={{ fontSize: "17px", fontWeight: 700 }}>Email</th>
-                <th style={{ fontSize: "17px", fontWeight: 700 }}>Total Hours</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Total Hours</th>
               </tr>
             </thead>
             <tbody>
@@ -195,7 +179,6 @@ export default function VolunteerLog() {
                 <React.Fragment key={volunteer.email || index}>
                   <tr
                     className="clickable"
-                    style={{ background: "#f4f7ff", cursor: "pointer" }}
                     onClick={() =>
                       setExpandedUser(
                         expandedUser === volunteer.email ? null : volunteer.email
@@ -208,12 +191,11 @@ export default function VolunteerLog() {
                     <td style={{ background: "#e0e7ff", fontWeight: 700 }}>{volunteer.totalHours}</td>
                   </tr>
 
-                  {/* Expanded event list */}
                   {expandedUser === volunteer.email && (
                     <tr className="event-row">
                       <td colSpan="4">
-                        <table className="event-table" style={{ width: "100%", marginTop: "10px", borderRadius: "10px", overflow: "hidden", boxShadow: "0 4px 12px rgba(102,126,234,0.08)" }}>
-                          <thead style={{ background: "#e0e7ff" }}>
+                        <table className="event-table">
+                          <thead>
                             <tr>
                               <th>Description</th>
                               <th>Hours</th>
@@ -224,10 +206,10 @@ export default function VolunteerLog() {
                           <tbody>
                             {volunteer.events.map((event, i) => (
                               <tr key={i}>
-                                <td>{event.description}</td>
+                                <td>{event.event_description}</td>
                                 <td>{event.hours}</td>
                                 <td>{event.status}</td>
-                                <td className="timestamp">{event.timestamp}</td>
+                                <td className="timestamp">{new Date(event.timestamp).toLocaleString()}</td>
                               </tr>
                             ))}
                           </tbody>
