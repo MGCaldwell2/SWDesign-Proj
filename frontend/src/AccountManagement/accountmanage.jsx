@@ -31,7 +31,8 @@ export default function AccountManage({ states = [], skills = [] }) {
     ["WI", "Wisconsin"], ["WY", "Wyoming"]
   ];
 
-  const skillset = ["Heavy Lifting", "Communication", "Problem Solving", "Teamwork", "Time Management", "Technical Skills", "Leadership"];
+  const skillset = ["Spanish", "Chinese", "First Aid", "Crown Control", "Photography", "Food Handling", "Heavy Lifting", "Elder Care" 
+];
 
   function FullNameField() {
     return (
@@ -198,25 +199,28 @@ export default function AccountManage({ states = [], skills = [] }) {
     }
 
     const fd = new FormData(form);
-    const data = {};
-    for (const [key, value] of fd.entries()) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        if (Array.isArray(data[key])) data[key].push(value);
-        else data[key] = [data[key], value];
-      } else {
-        data[key] = value;
-      }
-    }
+
+    const payload = {
+      full_name: fd.get("fullName") || "",
+      address1: fd.get("address1") || "",
+      address2: fd.get("address2") || "",
+      city: fd.get("city") || "",
+      state: fd.get("state") || "",
+      zipcode: fd.get("zip") || "",
+      skills: fd.getAll("skills"),
+      preferences: fd.get("preferences") || "",
+      availability: fd.getAll("availability"),
+    };
 
     try {
-      const res = await fetch("/api/accounts", {
+      const res = await fetch("http://localhost:5050/api/accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(`Server responded ${res.status}`);
       const saved = await res.json();
-      console.log("Saved account:", saved);
+      console.log("Saved account (MySQL):", saved);
       setShowPopup(true);
       // Optionally reset form here: form.reset();
     } catch (err) {
