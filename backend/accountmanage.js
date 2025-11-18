@@ -1,83 +1,203 @@
-import express from "express";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import pool from "./db.js";
 
+(async () => {
+  try {
+    await pool.query("SELECT 1");
+    console.log("✅ Connected to MySQL");
+  } catch (err) {
+    console.error("❌ MySQL connection failed:", err);
+  }
+})();
+
+const TEST_USER_ID = 1;
+
+// Helper to safely parse JSON columns
+function safeParseJSON(value, defaultValue = []) {
+  if (!value) return defaultValue;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return defaultValue;
+  }
+}
+
+// GET /account
+export const getAccount = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM UserProfile WHERE id = ?",
+      [TEST_USER_ID]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ error: "User not found" });
+
+    const user = rows[0];
+
+    user.skills = safeParseJSON(user.skills);
+    user.availability = safeParseJSON(user.availability);
+
+    res.json(user);
+  } catch (err) {
+    console.error("DB error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+};
+
+// PUT /account
+export const updateAccount = async (req, res) => {
+  console.log("Incoming updateAccount request body:", req.body);
+
+  const {
+    full_name,
+    address1,
+    address2,
+    city,
+    state,
+    zipcode,
+    skills,
+    preferences,
+    availability,
+  } = req.body;
+
+  try {
+    const [existingRows] = await pool.query(
+      "SELECT * FROM UserProfile WHERE id = ?",
+      [TEST_USER_ID]
+    );
+    if (existingRows.length === 0) return res.status(404).json({ error: "User not found" });
+
+    const existing = existingRows[0];
+
+    let skillsString, availabilityString;
+    try {
+      skillsString = JSON.stringify(skills ?? safeParseJSON(existing.skills));
+    } catch (jsonErr) {
+      console.error("JSON stringify error for skills:", jsonErr);
+      return res.status(400).json({ error: "Invalid JSON format for skills", details: jsonErr.message });
+    }
+    try {
+      availabilityString = JSON.stringify(availability ?? safeParseJSON(existing.availability));
+    } catch (jsonErr) {
+      console.error("JSON stringify error for availability:", jsonErr);
+      return res.status(400).json({ error: "Invalid JSON format for availability", details: jsonErr.message });
+    }
+
+    const updatedData = {
+      full_name: full_name ?? existing.full_name,
+      address1: address1 ?? existing.address1,
+      address2: address2 ?? existing.address2,
+      city: city ?? existing.city,
+      state: state ?? existing.state,
+      zipcode: zipcode ?? existing.zipcode,
+      skills: skillsString,
+      preferences: preferences ?? existing.preferences,
+      availability: availabilityString,
+    };
+
+    console.log("Updating UserProfile with:", updatedData);
+
+    try {
+      await pool.query(
+        `UPDATE UserProfile 
+         SET full_name = ?, 
+             address1 = ?, 
+             address2 = ?, 
+             city = ?, 
+             state = ?, 
+             zipcode = ?, 
+             skills = ?, 
+             preferences = ?, 
+             availability = ?
+         WHERE id = ?`,
+        [
+          updatedData.full_name,
+          updatedData.address1,
+          updatedData.address2,
+          updatedData.city,
+          updatedData.state,
+          updatedData.zipcode,
+          updatedData.skills,
+          updatedData.preferences,
+          updatedData.availability,
+          TEST_USER_ID,
+        ]
+      );
+    } catch (dbErr) {
+      console.error("MySQL update error:", dbErr);
+      return res.status(500).json({ error: "Database update failed", details: dbErr.message });
+    }
+
+    const [updatedRows] = await pool.query(
+      "SELECT * FROM UserProfile WHERE id = ?",
+      [TEST_USER_ID]
+    );
+
+    const updatedUser = updatedRows[0];
+    updatedUser.skills = safeParseJSON(updatedUser.skills);
+    updatedUser.availability = safeParseJSON(updatedUser.availability);
+
+    res.json(updatedUser);
+  } catch (err) {
+    console.error("DB update error:", err);
+    res.status(500).json({ error: "Database update failed", details: err.message });
+  }
+};
+export const createAccount = async (req, res) => {
+  console.log("Incoming createAccount request body:", req.body);
+
+  const {
+    full_name,
+    address1,
+    address2,
+    city,
+    state,
+    zipcode,
+    skills,
+    preferences,
+    availability,
+  } = req.body;
+
+  try {
+    const skillsString = JSON.stringify(skills ?? []);
+    const availabilityString = JSON.stringify(availability ?? []);
+
+    const [result] = await pool.query(
+      `INSERT INTO UserProfile (full_name, address1, address2, city, state, zipcode, skills, preferences, availability)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+      [
+        full_name || "",
+        address1 || "",
+        address2 || "",
+        city || "",
+        state || "",
+        zipcode || "",
+        skillsString,
+        preferences || "",
+        availabilityString,
+      ]
+    );
+
+    const insertedId = result.insertId;
+    const [rows] = await pool.query("SELECT * FROM UserProfile WHERE id = ?", [insertedId]);
+    const newUser = rows[0];
+    newUser.skills = safeParseJSON(newUser.skills);
+    newUser.availability = safeParseJSON(newUser.availability);
+
+    res.status(201).json(newUser);
+  } catch (err) {
+    console.error("DB insert error:", err);
+    res.status(500).json({ error: "Database insert failed", details: err.message });
+  }
+};
+
+import express from "express";
 const router = express.Router();
 
-// Resolve accounts.json relative to this module so it works no matter where the process was started
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DATA_FILE = path.resolve(__dirname, "accounts.json");
+router.get("/account", getAccount);
+router.put("/account", updateAccount);
 
-let store = {}; // id -> entry
-
-async function loadStore() {
-  try {
-    const txt = await fs.readFile(DATA_FILE, "utf8");
-    const parsed = JSON.parse(txt || "{}");
-    if (parsed && typeof parsed === "object") store = parsed;
-  } catch (err) {
-    // ignore if file doesn't exist
-    store = {};
-  }
-}
-
-async function persistStore() {
-  try {
-    await fs.writeFile(DATA_FILE, JSON.stringify(store, null, 2), "utf8");
-    return true;
-  } catch (err) {
-    console.error("Failed to persist accounts.json", err);
-    return false;
-  }
-}
-
-// bootstrap
-loadStore();
-
-// List all accounts
-router.get("/", (req, res) => {
-  const list = Object.values(store);
-  res.json(list);
-});
-
-// Get single account
-router.get("/:id", (req, res) => {
-  const id = req.params.id;
-  const entry = store[id];
-  if (!entry) return res.status(404).json({ error: "Not found" });
-  res.json(entry);
-});
-
-// Create new account entry
-router.post("/", async (req, res) => {
-  const body = req.body || {};
-
-  // Basic validation/shape enforcement
-  const entry = {
-    id: String(Date.now()),
-    createdAt: new Date().toISOString(),
-    fullName: body.fullName || "",
-    address1: body.address1 || "",
-    address2: body.address2 || "",
-    city: body.city || "",
-    state: body.state || "",
-    zip: body.zip || "",
-    skills: Array.isArray(body.skills) ? body.skills : [],
-    preferences: body.preferences || "",
-    availability: Array.isArray(body.availability) ? body.availability : []
-  };
-
-  store[entry.id] = entry;
-  const ok = await persistStore();
-  if (!ok) {
-    // remove from memory if write failed
-    delete store[entry.id];
-    return res.status(500).json({ error: "Failed to persist account" });
-  }
-
-  res.status(201).json(entry);
-});
+// For compatibility with older frontend code that might hit /api/accounts
+router.get("/", getAccount);
+router.post("/", createAccount);
 
 export default router;
