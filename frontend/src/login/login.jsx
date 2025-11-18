@@ -9,7 +9,7 @@ export default function Login() {
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
 
-  // Forgot password state
+  // Forgot password state (UI-only demo)
   const [showReset, setShowReset] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -20,7 +20,6 @@ export default function Login() {
   const [remember, setRemember] = useState(false);
 
   useEffect(() => {
-    // If user already remembered (localStorage) or has session (sessionStorage), auto navigate
     try {
       const storedLocal = localStorage.getItem("currentUser");
       const storedSession = sessionStorage.getItem("currentUser");
@@ -30,55 +29,66 @@ export default function Login() {
       } else if (storedSession) {
         navigate("/");
       }
-    } catch (e) {
-      // ignore storage errors
+    } catch {
+      /* ignore storage errors */
     }
   }, [navigate]);
 
   const validate = () => {
     const newErrors = { email: "", password: "" };
     let valid = true;
-    if (!email) {
-      newErrors.email = "Email is required";
-      valid = false;
-    }
-    if (!password) {
-      newErrors.password = "Password is required";
-      valid = false;
-    }
+    if (!email) { newErrors.email = "Email is required"; valid = false; }
+    if (!password) { newErrors.password = "Password is required"; valid = false; }
     setErrors(newErrors);
     return valid;
   };
 
-const handleLogin = async (e) => {
-  e.preventDefault();
-  setMessage("");
-  if (!validate()) return;
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    if (!validate()) return;
 
-  try {
-    const res = await fetch("http://localhost:5050/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: email, password }),
-    });
+    try {
+      const res = await fetch("http://localhost:5050/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Most backends expect { email, password }. If yours expects { username, password }, switch back.
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
-    if (res.ok) {
-      // save JWT token for future use
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("currentUser", JSON.stringify({ email }));
+      if (!res.ok) {
+        setMessage(data.message || "Invalid email or password");
+        return;
+      }
+
+      // Accept common token field names
+      const token = data.token || data.accessToken || data.jwt || null;
+      if (!token || typeof token !== "string") {
+        setMessage("Login succeeded but no token returned.");
+        return;
+      }
+
+      // Store raw token (no JSON.stringify)
+      if (remember) {
+        localStorage.setItem("token", token);
+        localStorage.setItem("currentUser", JSON.stringify({ email }));
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("currentUser");
+      } else {
+        sessionStorage.setItem("token", token);
+        sessionStorage.setItem("currentUser", JSON.stringify({ email }));
+        localStorage.removeItem("token");
+        localStorage.removeItem("currentUser");
+      }
 
       setMessage("Login successful");
       navigate("/");
-    } else {
-      setMessage(data.message || "Invalid email or password");
+    } catch (err) {
+      setMessage("Login failed. Please try again.");
     }
-  } catch (err) {
-    setMessage("Login failed. Please try again.");
-  }
-};
-
+  };
 
   const openReset = () => {
     setResetMessage("");
@@ -92,31 +102,19 @@ const handleLogin = async (e) => {
     e.preventDefault();
     setResetMessage("");
 
-    if (!resetEmail) {
-      setResetMessage("Please enter your account email.");
-      return;
-    }
-    if (!newPassword) {
-      setResetMessage("Please enter a new password.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setResetMessage("Passwords do not match.");
-      return;
-    }
+    if (!resetEmail) return setResetMessage("Please enter your account email.");
+    if (!newPassword) return setResetMessage("Please enter a new password.");
+    if (newPassword !== confirmPassword) return setResetMessage("Passwords do not match.");
 
+    // Demo-only: local fake reset
     const stored = localStorage.getItem(resetEmail);
-    if (!stored) {
-      setResetMessage("No account found for that email.");
-      return;
-    }
+    if (!stored) return setResetMessage("No account found for that email.");
 
     try {
       const userObj = JSON.parse(stored);
       userObj.password = newPassword;
       localStorage.setItem(resetEmail, JSON.stringify(userObj));
       setResetMessage("Password updated successfully. You can now sign in.");
-      // pre-fill login email and clear password
       setEmail(resetEmail);
       setPassword("");
       setShowReset(false);
