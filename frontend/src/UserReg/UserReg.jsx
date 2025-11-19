@@ -3,28 +3,25 @@ import { Link, useNavigate } from "react-router-dom";
 import "./UserReg.css";
 
 export default function UserReg() {
-  const [form, setForm] = useState({
-    username: "",
-    password: "",
-    confirmPassword: "",
-  });
-
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (form.password !== form.confirmPassword) {
+    if (!email || !password) {
+      setError("email and password are required");
+      return;
+    }
+    if (password !== confirm) {
       setError("Passwords do not match");
       return;
     }
@@ -33,21 +30,25 @@ export default function UserReg() {
       const res = await fetch("http://localhost:5050/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: form.username,
-          password: form.password,
-        }),
+        body: JSON.stringify({ email, password })
       });
+      const data = await res.json().catch(() => ({}));
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setSuccess("Registration successful! Redirecting to login...");
-        setTimeout(() => navigate("/Login"), 1500);
-      } else {
+      if (!res.ok) {
         setError(data.message || "Registration failed.");
+        return;
       }
-    } catch (err) {
+
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("currentUser", JSON.stringify({ email }));
+        setSuccess("Registration successful! Redirecting…");
+        setTimeout(() => navigate("/"), 1200);
+      } else {
+        setSuccess("Registration successful! Redirecting to login…");
+        setTimeout(() => navigate("/Login"), 1200);
+      }
+    } catch {
       setError("An error occurred. Please try again later.");
     }
   };
@@ -62,10 +63,10 @@ export default function UserReg() {
         <label className="user-reg-label">
           Username (email)
           <input
-            type="text"
-            name="username"
-            value={form.username}
-            onChange={handleChange}
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             className="user-reg-input"
           />
@@ -77,8 +78,8 @@ export default function UserReg() {
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              value={form.password}
-              onChange={handleChange}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
               className="user-reg-input"
               style={{ flex: 1 }}
@@ -99,17 +100,15 @@ export default function UserReg() {
             <input
               type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
-              value={form.confirmPassword}
-              onChange={handleChange}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
               required
               className="user-reg-input"
               style={{ flex: 1 }}
             />
             <button
               type="button"
-              onClick={() =>
-                setShowConfirmPassword(!showConfirmPassword)
-              }
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="toggle-btn"
             >
               {showConfirmPassword ? "Hide" : "Show"}
@@ -121,9 +120,7 @@ export default function UserReg() {
       </form>
 
       <div style={{ marginTop: "1rem" }}>
-        <Link to="/" className="user-reg-link">
-          ⬅ Back to Home
-        </Link>
+        <Link to="/" className="user-reg-link">⬅ Back to Home</Link>
       </div>
     </div>
   );

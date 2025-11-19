@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./EventManageForm.css";
+import { authHeaders } from "../lib/auth";
+
+function toInputDate(v) {
+  if (!v) return "";
+  const d = new Date(v);
+  if (Number.isNaN(d)) return String(v).slice(0, 10);
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 10);
+}
 
 export default function EventEditForm() {
   const [events, setEvents] = useState([]);
@@ -13,36 +22,33 @@ export default function EventEditForm() {
     "Heavy Lifting", "Elder Care"
   ];
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    fetch("http://localhost:5050/api/events", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => res.json())
-      .then(data => setEvents(data))
-      .catch(err => console.error("Error fetching events:", err));
-  }, []);
+  async function refreshEvents() {
+    try {
+      const res = await fetch("http://localhost:5050/api/events");
+      if (!res.ok) { setEvents([]); return; }
+      const data = await res.json();
+      setEvents(Array.isArray(data) ? data : []);
+    } catch {
+      setEvents([]);
+    }
+  }
+
+  useEffect(() => { refreshEvents(); }, []);
 
   const handleSelect = async (e) => {
     const id = e.target.value;
-    if (!id) {
-      setSelectedEvent(null);
-      return;
-    }
-
-    const token = localStorage.getItem("token");
+    if (!id) { setSelectedEvent(null); return; }
     try {
-      const res = await fetch(`http://localhost:5050/api/events/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`http://localhost:5050/api/events/${id}`);
+      if (!res.ok) return;
       const data = await res.json();
-
-      // Make sure skills field exists as an array
-      if (!data.skills) data.skills = [];
-      setSelectedEvent(data);
-    } catch (err) {
-      console.error("Error fetching event:", err);
-    }
+      setSelectedEvent({
+        ...data,
+        skills: Array.isArray(data.skills) ? data.skills : [],
+        urgency: data.urgency || "Low",
+        date: toInputDate(data.date)
+      });
+    } catch {}
   };
 
   const handleChange = (e) => {
@@ -51,10 +57,9 @@ export default function EventEditForm() {
 
   const toggleSkill = (skill) => {
     setSelectedEvent((prev) => {
-      const updatedSkills = prev.skills.includes(skill)
-        ? prev.skills.filter((s) => s !== skill)
-        : [...prev.skills, skill];
-      return { ...prev, skills: updatedSkills };
+      const cur = Array.isArray(prev.skills) ? prev.skills : [];
+      const updated = cur.includes(skill) ? cur.filter(s => s !== skill) : [...cur, skill];
+      return { ...prev, skills: updated };
     });
   };
 
@@ -62,28 +67,52 @@ export default function EventEditForm() {
     e.preventDefault();
     if (!selectedEvent) return;
 
-    const token = localStorage.getItem("token");
+    const payload = {
+      name: selectedEvent.name?.trim() || "",
+      description: selectedEvent.description?.trim() || "",
+      location: selectedEvent.location?.trim() || "",
+      date: selectedEvent.date && String(selectedEvent.date).trim() !== ""
+        ? toInputDate(selectedEvent.date)
+        : null,
+      capacity:
+        selectedEvent.capacity === "" || selectedEvent.capacity === undefined || selectedEvent.capacity === null
+          ? null
+          : Number(selectedEvent.capacity),
+    };
+
     try {
       const res = await fetch(`http://localhost:5050/api/events/${selectedEvent.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(selectedEvent),
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(payload),
       });
-
-      const data = await res.json();
-      console.log("Update Event Response:", res.status, data);
-
-      if (res.ok) {
-        navigate("/", { state: { successMessage: "✅ Event updated successfully!" } });
-      } else {
-        alert(data.message || "Failed to update event.");
-      }
-    } catch (err) {
-      console.error("Error updating event:", err);
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401 || res.status === 403) { alert("You must be logged in to update events."); return; }
+      if (!res.ok) { alert(data.message || "Failed to update event."); return; }
+      navigate("/", { state: { successMessage: "✅ Event updated successfully!" } });
+    } catch {
       alert("An error occurred while updating the event.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedEvent) return;
+    const confirmDelete = window.confirm(`Are you sure you want to delete "${selectedEvent.name}"?`);
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`http://localhost:5050/api/events/${selectedEvent.id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.message || "Failed to delete event."); return; }
+
+      alert("✅ Event deleted successfully.");
+      setSelectedEvent(null);
+      await refreshEvents();
+    } catch {
+      alert("An error occurred while deleting the event.");
     }
   };
 
@@ -93,7 +122,7 @@ export default function EventEditForm() {
 
       <select onChange={handleSelect}>
         <option value="">-- Select Event to Edit --</option>
-        {events.map((e) => (
+        {(Array.isArray(events) ? events : []).map((e) => (
           <option key={e.id} value={e.id}>
             {e.name} ({e.date})
           </option>
@@ -103,13 +132,13 @@ export default function EventEditForm() {
       {selectedEvent && (
         <form onSubmit={handleUpdate} className="event-form">
           <label>Event Name</label>
-          <input name="name" value={selectedEvent.name} onChange={handleChange} required />
+          <input name="name" value={selectedEvent.name || ""} onChange={handleChange} required />
 
           <label>Description</label>
-          <textarea name="description" value={selectedEvent.description} onChange={handleChange} required />
+          <textarea name="description" value={selectedEvent.description || ""} onChange={handleChange} required />
 
           <label>Location</label>
-          <textarea name="location" value={selectedEvent.location} onChange={handleChange} required />
+          <textarea name="location" value={selectedEvent.location || ""} onChange={handleChange} required />
 
           <label>Required Skills</label>
           <div className="checkbox-menu-list">
@@ -117,7 +146,7 @@ export default function EventEditForm() {
               <label key={skill} className="checkbox-menu-item">
                 <input
                   type="checkbox"
-                  checked={selectedEvent.skills.includes(skill)}
+                  checked={(selectedEvent.skills || []).includes(skill)}
                   onChange={() => toggleSkill(skill)}
                 />
                 {skill}
@@ -126,16 +155,34 @@ export default function EventEditForm() {
           </div>
 
           <label>Urgency</label>
-          <select name="urgency" value={selectedEvent.urgency} onChange={handleChange}>
+          <select name="urgency" value={selectedEvent.urgency || "Low"} onChange={handleChange}>
             <option value="Low">Low</option>
             <option value="Medium">Medium</option>
             <option value="High">High</option>
           </select>
 
           <label>Event Date</label>
-          <input type="date" name="date" value={selectedEvent.date} onChange={handleChange} />
+          <input
+            type="date"
+            name="date"
+            value={toInputDate(selectedEvent.date)}
+            onChange={handleChange}
+          />
 
-          <button type="submit" className="event-form-btn">Update Event</button>
+          <label>Capacity</label>
+          <input
+            type="number"
+            name="capacity"
+            value={selectedEvent.capacity ?? ""}
+            onChange={handleChange}
+          />
+
+          <div className="button-row">
+            <button type="submit" className="event-form-btn">Update Event</button>
+            <button type="button" className="event-form-btn delete-btn" onClick={handleDelete}>
+              🗑️ Delete Event
+            </button>
+          </div>
         </form>
       )}
     </div>
