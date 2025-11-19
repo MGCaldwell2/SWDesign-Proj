@@ -28,7 +28,12 @@ app.use(express.json());
 // --- Routes ---
 // Auth and events
 app.use("/api/auth", authRoutes);
-app.use("/api/events", eventRoutes);
+//app.use("/api/events", eventRoutes);
+
+// Accounts
+app.use("/api/accounts", accountRouter);
+
+// Volunteer matching and notifications
 app.use("/api", volunteermatchingRouter);
 app.use("/api", notificationRouter);
 app.use("/api/accounts", accountRouter);
