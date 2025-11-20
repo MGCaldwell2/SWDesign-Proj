@@ -1,9 +1,6 @@
 {
   "dependencies": {
-<<<<<<< HEAD
     "axios": "^1.13.2",
-=======
->>>>>>> f4c1f2b2c5fad91b3d17a12043aafd52f54f412a
     "dotenv": "^17.2.3",
     "mysql2": "^3.15.3",
     "react-dom": "^19.1.1",
