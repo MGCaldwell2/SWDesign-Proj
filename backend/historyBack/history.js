@@ -8,7 +8,7 @@ const pool = mysql.createPool({
   host: "localhost",
   user: "root",
   password: "Password123-",   // <-- CHANGE THIS
-  database: "group_user1"     // <-- CHANGE THIS
+  database: "SWDesign-Proj"     // <-- CHANGE THIS
 });
 
 /* =====================================================

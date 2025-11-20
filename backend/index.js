@@ -7,8 +7,9 @@ import accountRouter from "./accountmanage.js";
 import volunteermatchingRouter from "./volunteermatching/volunteermatching.js";
 import notificationRouter from "./notification/notification.js";
 import userRoutes from "./routes/userRoutes.js";
+import userControllers from "./controllers/userControllers.js";
 import historyRoutes from "./historyBack/history.js";
-app.use("/api/volunteer-history", historyRoutes);
+app.use("/api", historyRoutes); // all endpoints like /api/users/get-or-create and /api/volunteer-history
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use(express.json());
 // Auth and events
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
+app.use("/api/users", userRoutes);
 
 // Accounts
 app.use("/api/accounts", accountRouter);
