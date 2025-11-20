@@ -142,11 +142,62 @@ export const updateAccount = async (req, res) => {
     res.status(500).json({ error: "Database update failed", details: err.message });
   }
 };
+export const createAccount = async (req, res) => {
+  console.log("Incoming createAccount request body:", req.body);
+
+  const {
+    full_name,
+    address1,
+    address2,
+    city,
+    state,
+    zipcode,
+    skills,
+    preferences,
+    availability,
+  } = req.body;
+
+  try {
+    const skillsString = JSON.stringify(skills ?? []);
+    const availabilityString = JSON.stringify(availability ?? []);
+
+    const [result] = await pool.query(
+      `INSERT INTO UserProfile (full_name, address1, address2, city, state, zipcode, skills, preferences, availability)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+      [
+        full_name || "",
+        address1 || "",
+        address2 || "",
+        city || "",
+        state || "",
+        zipcode || "",
+        skillsString,
+        preferences || "",
+        availabilityString,
+      ]
+    );
+
+    const insertedId = result.insertId;
+    const [rows] = await pool.query("SELECT * FROM UserProfile WHERE id = ?", [insertedId]);
+    const newUser = rows[0];
+    newUser.skills = safeParseJSON(newUser.skills);
+    newUser.availability = safeParseJSON(newUser.availability);
+
+    res.status(201).json(newUser);
+  } catch (err) {
+    console.error("DB insert error:", err);
+    res.status(500).json({ error: "Database insert failed", details: err.message });
+  }
+};
 
 import express from "express";
 const router = express.Router();
 
 router.get("/account", getAccount);
 router.put("/account", updateAccount);
+
+// For compatibility with older frontend code that might hit /api/accounts
+router.get("/", getAccount);
+router.post("/", createAccount);
 
 export default router;

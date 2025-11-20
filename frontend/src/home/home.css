@@ -276,3 +276,44 @@ body, html {
 .logout-btn:hover {
   background: #b02018;
 }
+
+/* Demo Access Buttons on Home */
+.welcome-card.demo-access {
+  margin-top: 1.5rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+  border: 2px solid #a78bfa;
+}
+
+.welcome-card.demo-access h2 {
+  color: #5b21b6;
+}
+
+.cta-button.demo-user,
+.cta-button.demo-admin {
+  border: none;
+  cursor: pointer;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.9rem;
+}
+
+.cta-button.demo-user {
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  color: white;
+}
+
+.cta-button.demo-user:hover {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.cta-button.demo-admin {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  color: white;
+}
+
+.cta-button.demo-admin:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}

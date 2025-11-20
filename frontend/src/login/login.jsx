@@ -31,17 +31,11 @@ export default function Login() {
   const validate = () => {
     const newErrors = { email: "", password: "" };
     let valid = true;
-    if (!email) {
-      newErrors.email = "Email is required";
-      valid = false;
-    }
-    if (!password) {
-      newErrors.password = "Password is required";
-      valid = false;
-    }
+    if (!email) { newErrors.email = "Email is required"; valid = false; }
+    if (!password) { newErrors.password = "Password is required"; valid = false; }
     setErrors(newErrors);
     return valid;
-  };
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();

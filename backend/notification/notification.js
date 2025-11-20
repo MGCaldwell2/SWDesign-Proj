@@ -1,98 +1,99 @@
 import express from "express";
-import fs from "fs";
-import path from "path";
-import { volunteers, events } from "../volunteermatching/volunteermatching.js";
+import pool from "../db.js";
 
 const router = express.Router();
 
-// file to store notification data
-const dataDir = path.join(process.cwd(), "data");
-const notifFile = path.join(dataDir, "notifications.json");
-
-//  load notifications
-let notifications = [];
-function ensureDataFile() {
-  try {
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    if (!fs.existsSync(notifFile)) fs.writeFileSync(notifFile, JSON.stringify([{ id: 1, userId: 1, type: "assignment", message: "Assigned to Community Health Fair.", eventId: 101, isRead: false, timestamp: new Date().toISOString() }], null, 2));
-    const raw = fs.readFileSync(notifFile, "utf8");
-    notifications = JSON.parse(raw || "[]");
-  } catch (err) {
-    console.error("Failed to initialize notifications file:", err);
-    notifications = [];
-  }
-}
-
-function writeNotifications() {
-  try {
-    fs.writeFileSync(notifFile, JSON.stringify(notifications, null, 2));
-  } catch (err) {
-    console.error("Failed to write notifications file:", err);
-  }
-}
-
-ensureDataFile();
-
-// GET /api/notifications
-router.get("/notifications", (req, res) => {
+router.get("/notifications", async (req, res) => {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ error: "userId is required" });
+
   try {
-    const raw = fs.readFileSync(notifFile, "utf8");
-    notifications = JSON.parse(raw || "[]");
+    const [rows] = await pool.query(
+      `
+      SELECT n.id,
+             n.recipient_user_id AS userId,
+             n.type,
+             n.message,
+             n.event_id AS eventId,
+             n.is_read AS isRead,
+             n.created_at AS timestamp,
+             e.name AS eventName
+      FROM notifications n
+      LEFT JOIN events e ON e.id = n.event_id
+      WHERE n.recipient_user_id = ?
+      ORDER BY n.created_at DESC
+      `,
+      [userId]
+    );
+
+    res.json(rows);
   } catch (err) {
-    console.error("Failed to read notifications file:", err);
-    return res.status(500).json({ error: "Failed to read notifications" });
+    console.error("Error fetching notifications:", err);
+    res.status(500).json({ error: "Failed to load notifications" });
   }
-  res.json(notifications.filter(n => n.userId === Number(userId)));
 });
 
-// POST /api/notifications
-router.post("/notifications", (req, res) => {
+router.post("/notifications", async (req, res) => {
   const { volunteerName, eventId, type, message } = req.body;
-  if (!type || !message) return res.status(400).json({ error: "type and message are required" });
-  if (typeof message !== "string" || message.length > 200) return res.status(400).json({ error: "Message must be a string up to 200 chars" });
-  if (!["assignment", "update", "reminder"].includes(type)) return res.status(400).json({ error: "Invalid notification type" });
-
-  let recipients = [];
-  if (volunteerName) {
-    const v = volunteers.find(v => v.name === volunteerName);
-    if (!v) return res.status(404).json({ error: "Volunteer not found" });
-    recipients = [v];
-  } else if (eventId) {
-    const event = events.find(e => String(e.id) === String(eventId));
-    if (!event) return res.status(404).json({ error: "Event not found" });
-    recipients = volunteers.filter(v => v.skills.some(skill => event.requiredSkills.includes(skill)));
-    if (recipients.length === 0) return res.status(404).json({ error: "No eligible volunteers for this event" });
-  } else {
-    return res.status(400).json({ error: "Must provide volunteerName or eventId" });
-  }
+  if (!type || !message)
+    return res.status(400).json({ error: "type and message are required" });
 
   try {
-    const raw = fs.readFileSync(notifFile, "utf8");
-    notifications = JSON.parse(raw || "[]");
+    let recipients = [];
+
+    // Send to a specific volunteer by name
+    if (volunteerName) {
+      const [rows] = await pool.query(
+        `SELECT u.id AS userId
+         FROM volunteers v
+         JOIN users u ON u.id = v.user_id
+         WHERE v.name = ?`,
+        [volunteerName]
+      );
+      if (rows.length === 0)
+        return res.status(404).json({ error: "Volunteer not found" });
+      recipients = rows.map((r) => r.userId);
+    }
+
+    // Send to all volunteers in an event
+    else if (eventId) {
+      const [rows] = await pool.query(
+        `SELECT DISTINCT u.id AS userId
+         FROM assignments a
+         JOIN volunteers v ON v.id = a.volunteer_id
+         JOIN users u ON u.id = v.user_id
+         WHERE a.event_id = ?`,
+        [eventId]
+      );
+      if (rows.length === 0)
+        return res
+          .status(404)
+          .json({ error: "No volunteers assigned to this event" });
+      recipients = rows.map((r) => r.userId);
+    } else {
+      return res
+        .status(400)
+        .json({ error: "Must provide volunteerName or eventId" });
+    }
+
+    // Insert notifications
+    for (const userId of recipients) {
+      await pool.query(
+        `INSERT INTO notifications (recipient_user_id, type, message, event_id)
+         VALUES (?, ?, ?, ?)`,
+        [userId, type, message, eventId || null]
+      );
+    }
+
+    res.json({
+      success: true,
+      count: recipients.length,
+      message: "Notifications sent successfully",
+    });
   } catch (err) {
-    console.error("Failed to read notifications file before writing:", err);
-    notifications = [];
+    console.error("Error creating notification:", err);
+    res.status(500).json({ error: "Failed to send notifications" });
   }
-
-  const newNotifs = recipients.map(v => {
-    const nextId = notifications.length ? Math.max(...notifications.map(n => n.id)) + 1 : 1;
-    const notif = {
-      id: nextId,
-      userId: v.id,
-      type,
-      message,
-      eventId: eventId ? Number(eventId) : null,
-      isRead: false,
-      timestamp: new Date().toISOString(),
-    };
-    notifications.push(notif);
-    return notif;
-  });
-
-  writeNotifications();
-  res.json({ success: true, notifications: newNotifs });
 });
 
 export default router;
