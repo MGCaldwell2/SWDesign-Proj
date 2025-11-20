@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./history.css";
 
+
 export default function VolunteerLog() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -15,9 +16,8 @@ export default function VolunteerLog() {
   const [expandedUser, setExpandedUser] = useState(null);
 
   useEffect(() => {
-    // Fetch volunteer logs from backend
     axios
-      .get("http://localhost:3001/api/volunteer-history")
+      .get("http://localhost:5050/api/volunteer-history")
       .then((res) => setLogs(res.data))
       .catch((err) => console.error(err));
   }, []);
@@ -41,35 +41,43 @@ export default function VolunteerLog() {
     }
 
     try {
-      // Find user_id based on email (backend should return or create user)
-      const userRes = await axios.post("http://localhost:3001/api/get-or-create-user", {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
-      });
+      const userRes = await axios.post(
+  "http://localhost:5050/api/users/get-or-create",
+  {
+    name: name.trim(),
+    email: email.trim().toLowerCase(),
+    phone: phone.trim(),
+  }
+);
 
-      const userId = userRes.data.user_id;
+       const userId = userRes.data.user_id;
 
-      // Add volunteer history
-      const logRes = await axios.post("http://localhost:3001/api/volunteer-history", {
+      const logRes = await axios.post("http://localhost:5050/api/volunteer-history", {
+        //headers: { Authorization: `Bearer ${token}` }
         user_id: userId,
         event_description: progress.trim(),
         hours: parseFloat(hours),
         status,
       });
 
-      // Update frontend state
       setLogs((prev) => [...prev, logRes.data]);
-      setName(""); setEmail(""); setPhone(""); setProgress(""); setHours(""); setStatus("Completed"); setShowForm(false);
+
+      setName("");
+      setEmail("");
+      setPhone("");
+      setProgress("");
+      setHours("");
+      setStatus("Completed");
+      setShowForm(false);
     } catch (err) {
       console.error(err);
       setError("Failed to add event. Make sure the server is running.");
     }
   };
 
-  // Group logs by email
+  // FIXED: safe email access
   const groupedLogs = logs.reduce((acc, log) => {
-    const key = log.email.toLowerCase().trim();
+    const key = (log.email || "").toLowerCase().trim();
     if (!acc[key]) {
       acc[key] = {
         email: key,
@@ -98,7 +106,13 @@ export default function VolunteerLog() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "20px" }}>
-        <button className="add-btn" onClick={() => setShowForm(!showForm)}>
+        <button
+          className="add-btn"
+          onClick={() => {
+            setShowForm(!showForm);
+            setError(""); // FIX: reset error when toggling form
+          }}
+        >
           {showForm ? "Close" : "+ Add Hours"}
         </button>
       </div>
@@ -149,7 +163,17 @@ export default function VolunteerLog() {
         </div>
       )}
 
-      <div className="summary modern-card" style={{ background: "linear-gradient(90deg, #667eea, #764ba2)", color: "white", borderRadius: "14px", boxShadow: "0 8px 30px rgba(0,0,0,0.08)", marginBottom: "30px", padding: "24px" }}>
+      <div
+        className="summary modern-card"
+        style={{
+          background: "linear-gradient(90deg, #667eea, #764ba2)",
+          color: "white",
+          borderRadius: "14px",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
+          marginBottom: "30px",
+          padding: "24px",
+        }}
+      >
         <h2 style={{ marginBottom: "10px", fontWeight: 700 }}>Summary</h2>
         <div style={{ display: "flex", gap: "40px", fontSize: "18px" }}>
           <div>
@@ -209,7 +233,9 @@ export default function VolunteerLog() {
                                 <td>{event.event_description}</td>
                                 <td>{event.hours}</td>
                                 <td>{event.status}</td>
-                                <td className="timestamp">{new Date(event.timestamp).toLocaleString()}</td>
+                                <td className="timestamp">
+                                  {new Date(event.timestamp).toLocaleString()}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
