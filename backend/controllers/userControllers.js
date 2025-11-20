@@ -1,5 +1,36 @@
 import pool from "../db.js";
 
+// Get or create a user
+export const getOrCreateUser = async (req, res) => {
+  try {
+    const { name, email, phone } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ error: "Name and email are required." });
+    }
+
+    const [existing] = await pool.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (existing.length > 0) {
+      return res.json({ user_id: existing[0].user_id });
+    }
+
+    const [result] = await pool.query(
+      "INSERT INTO users (name, email, phone) VALUES (?, ?, ?)",
+      [name, email, phone || null]
+    );
+
+    return res.json({ user_id: result.insertId });
+
+  } catch (err) {
+    console.error("Error in get-or-create-user:", err);
+    res.status(500).json({ error: "Server error." });
+  }
+};
+
 // Create a volunteer event
 export const createEvent = async (req, res) => {
   const { user_id, event_description, hours, status, volunteer_date } = req.body;

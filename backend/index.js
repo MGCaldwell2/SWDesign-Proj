@@ -8,7 +8,6 @@ import volunteermatchingRouter from "./volunteermatching/volunteermatching.js";
 import notificationRouter from "./notification/notification.js";
 import userRoutes from "./routes/userRoutes.js";
 import historyRoutes from "./historyBack/history.js";
-app.use("/api/volunteer-history", historyRoutes);
 
 dotenv.config();
 
@@ -26,9 +25,8 @@ app.use("/api/events", eventRoutes);
 // Accounts
 app.use("/api/accounts", accountRouter);
 
-//import historyRoutes from "./history.js";
-//app.use("/api", historyRoutes);
-
+// Volunteer history
+app.use("/api", historyRoutes);
 
 // Volunteer matching and notifications
 app.use("/api", volunteermatchingRouter);
