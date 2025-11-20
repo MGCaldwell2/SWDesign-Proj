@@ -12,7 +12,7 @@ function Notification() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   // For demo, hardcode userId=1
-  const userId = 1;
+  const userId = 4;
 
   // Fetch notifications from backend
   useEffect(() => {

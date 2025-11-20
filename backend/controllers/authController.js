@@ -4,23 +4,27 @@ import jwt from "jsonwebtoken";
 const users = [];
 
 export const register = (req, res) => {
-  const { username, password } = req.body;
+  // Accept either email or username
+  const { email, username, password } = req.body;
+  const userIdentifier = email || username;
 
-  if (users.find((u) => u.username === username)) {
+  if (users.find((u) => u.username === userIdentifier)) {
     return res.status(400).json({ message: "User already exists" });
   }
 
-  const newUser = { username, password };
+  const newUser = { username: userIdentifier, password };
   users.push(newUser);
 
   res.json({ message: "Registration successful" });
 };
 
 export const login = (req, res) => {
-  const { username, password } = req.body;
+  // Accept either email or username
+  const { email, username, password } = req.body;
+  const loginIdentifier = email || username;
 
   const user = users.find(
-    (u) => u.username === username && u.password === password
+    (u) => u.username === loginIdentifier && u.password === password
   );
   if (!user) {
     return res.status(401).json({ message: "Invalid credentials" });

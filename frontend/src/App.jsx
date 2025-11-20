@@ -9,7 +9,9 @@ import UserReg from "./UserReg/UserReg";
 import VolunteerMatching from "./volunteermatching/volunteermatching";
 import Notification from "./notification/notification";
 import AdminNotificationSender from "./notification/AdminNotificationSender";
-import Home from "./home/home";  
+import Home from "./home/home";
+import UserDashboard from "./dashboard/UserDashboard";
+import AdminDashboard from "./dashboard/AdminDashboard";  
 
 
 export default function App() {
@@ -26,6 +28,8 @@ export default function App() {
         <Route path="/AccountManage" element={<div style={{ padding: 20 }}><AccountManage /></div>} />
         <Route path="/notifications" element={<Notification />} />
         <Route path="/admin/notifications" element={<AdminNotificationSender />} />
+        <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </div>
   );

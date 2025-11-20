@@ -1,16 +1,7 @@
 import express from "express";
-import mysql from "mysql2/promise";
+import pool from "../db.js";
 
 const router = express.Router();
-
-// DATABASE CONNECTION POOL
-const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "Password123-",   // <-- CHANGE THIS
-  database: "SWDesign-Proj"     // <-- CHANGE THIS
-});
-
 /* =====================================================
    GET OR CREATE USER
    ===================================================== */

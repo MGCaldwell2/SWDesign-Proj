@@ -1,78 +1,206 @@
 import express from "express";
-import fs from "fs";
-import path from "path";
+import pool from "../db.js";
 
 const router = express.Router();
 
-// Data storage for volunteers/events
-const dataDir = path.join(process.cwd(), "data");
-const veFile = path.join(dataDir, "volunteers_events.json");
-
-// default data
-const DEFAULT_VOLUNTEERS = [
-  { id: 1, name: "Alex Johnson", skills: ["First Aid", "Spanish", "Crowd Control"], availability: ["2025-10-01", "2025-10-05", "2025-10-12"], city: "Houston" },
-  { id: 2, name: "Taylor Kim", skills: ["Data Entry", "Photography"], availability: ["2025-10-05", "2025-10-07"], city: "Houston" },
-  { id: 3, name: "Mason Rivera", skills: ["Spanish", "Food Handling", "Logistics"], availability: ["2025-10-12", "2025-10-13", "2025-10-20"], city: "Katy" },
-];
-const DEFAULT_EVENTS = [
-  { id: 101, name: "Community Health Fair", requiredSkills: ["First Aid", "Spanish"], date: "2025-10-01", location: "Houston", description: "Basic vitals, check-in, guiding attendees." },
-  { id: 102, name: "Food Bank Drive", requiredSkills: ["Food Handling", "Logistics"], date: "2025-10-12", location: "Katy", description: "Sorting and distribution of non-perishables." },
-  { id: 103, name: "City Marathon Volunteer Crew", requiredSkills: ["Crowd Control"], date: "2025-10-05", location: "Houston", description: "Course marshals and hydration stations." },
-  { id: 104, name: "Community Newsletter Day", requiredSkills: ["Data Entry", "Photography"], date: "2025-10-07", location: "Houston", description: "Capture photos and digitize signups." },
-];
-
-export let volunteers = [];
-export let events = [];
-
-function ensureVEFile() {
+router.get("/volunteers", async (req, res) => {
   try {
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    if (!fs.existsSync(veFile)) {
-      fs.writeFileSync(veFile, JSON.stringify({ volunteers: DEFAULT_VOLUNTEERS, events: DEFAULT_EVENTS }, null, 2));
-    }
-    const raw = fs.readFileSync(veFile, 'utf8');
-    const parsed = JSON.parse(raw || '{}');
-    volunteers = parsed.volunteers || DEFAULT_VOLUNTEERS;
-    events = parsed.events || DEFAULT_EVENTS;
+    console.log("Fetching volunteers...");
+    const [rows] = await pool.query(`
+      SELECT 
+        v.id AS volunteer_id,
+        v.name AS volunteer_name,
+        v.city,
+        v.bio,
+        v.email,
+        v.phone,
+        COALESCE(GROUP_CONCAT(DISTINCT s.name SEPARATOR ', '), '') AS skills
+      FROM volunteers v
+      LEFT JOIN volunteer_skills vs ON vs.volunteer_id = v.id
+      LEFT JOIN skills s ON s.id = vs.skill_id
+      GROUP BY v.id
+      ORDER BY v.id;
+    `);
+
+    const volunteers = rows.map(row => ({
+      id: row.volunteer_id,
+      name: row.volunteer_name,
+      city: row.city,
+      bio: row.bio,
+      email: row.email,
+      phone: row.phone,
+      skills: row.skills ? row.skills.split(',').map(s => s.trim()) : []
+    }));
+
+    console.log(`Found ${volunteers.length} volunteers`);
+    res.json(volunteers);
   } catch (err) {
-    console.error('Failed to initialize volunteers/events file:', err);
-    volunteers = DEFAULT_VOLUNTEERS;
-    events = DEFAULT_EVENTS;
+    console.error("Error fetching volunteers:", err);
+    res.status(500).json({ error: "Failed to load volunteers" });
   }
-}
-
-function writeVEFile() {
-  try {
-    fs.writeFileSync(veFile, JSON.stringify({ volunteers, events }, null, 2));
-  } catch (err) {
-    console.error('Failed to write volunteers/events file:', err);
-  }
-}
-
-ensureVEFile();
-
-// GET /api/volunteers
-router.get("/volunteers", (req, res) => {
-  res.json(volunteers);
 });
 
-// GET /api/events
-router.get("/events", (req, res) => {
-  res.json(events);
+router.get("/events", async (req, res) => {
+  try {
+    console.log("Fetching events...");
+    const [rows] = await pool.query(`
+      SELECT 
+        e.id AS event_id,
+        e.name AS event_name,
+        e.description,
+        e.date,
+        e.location,
+        e.capacity,
+        COALESCE(GROUP_CONCAT(DISTINCT s.name SEPARATOR ', '), '') AS required_skills
+      FROM events e
+      LEFT JOIN event_skills es ON es.event_id = e.id
+      LEFT JOIN skills s ON s.id = es.skill_id
+      GROUP BY e.id
+      ORDER BY e.date ASC;
+    `);
+
+    const events = rows.map(row => ({
+      id: row.event_id,
+      name: row.event_name,
+      description: row.description,
+      date: row.date ? new Date(row.date).toISOString().split("T")[0] : null,
+      location: row.location,
+      capacity: row.capacity,
+      requiredSkills: row.required_skills
+        ? row.required_skills.split(",").map(s => s.trim()).filter(Boolean)
+        : []
+    }));
+
+    console.log(`Found ${events.length} events`);
+    res.json(events);
+  } catch (err) {
+    console.error("Error fetching events:", err);
+    res.status(500).json({ error: "Failed to load events" });
+  }
 });
 
-// POST /api/match
-router.post("/match", (req, res) => {
+router.post("/match", async (req, res) => {
   const { volunteerId, eventId } = req.body;
-  if (!volunteerId || !eventId) return res.status(400).json({ error: "volunteerId and eventId are required" });
-  const volunteer = volunteers.find(v => v.id === Number(volunteerId));
-  const event = events.find(e => e.id === Number(eventId));
-  if (!volunteer) return res.status(404).json({ error: "Volunteer not found" });
-  if (!event) return res.status(404).json({ error: "Event not found" });
-  const overlap = event.requiredSkills.filter(skill => volunteer.skills.includes(skill)).length;
-  const eligible = overlap > (event.requiredSkills.length / 2);
-  if (!eligible) return res.status(400).json({ error: "Volunteer is not eligible for this event" });
-  res.json({ matched: true, volunteer, event });
+  if (!volunteerId || !eventId) {
+    return res.status(400).json({ error: "volunteerId and eventId are required" });
+  }
+
+  try {
+    // Check if already assigned
+    const [existing] = await pool.query(
+      "SELECT id FROM assignments WHERE volunteer_id = ? AND event_id = ?",
+      [volunteerId, eventId]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "Volunteer already assigned to this event" });
+    }
+
+    // Insert into assignments
+    await pool.query(
+      "INSERT INTO assignments (volunteer_id, event_id, status) VALUES (?, ?, 'assigned')",
+      [volunteerId, eventId]
+    );
+
+    // Find linked user for volunteer
+    const [[volUser]] = await pool.query(
+      "SELECT user_id FROM volunteers WHERE id = ?",
+      [volunteerId]
+    );
+
+    // Create notification for that user
+    if (volUser?.user_id) {
+      await pool.query(
+        "INSERT INTO notifications (recipient_user_id, type, message, event_id) VALUES (?, 'assignment', ?, ?)",
+        [volUser.user_id, "You’ve been assigned to an event.", eventId]
+      );
+    }
+
+    res.json({ success: true, message: "Volunteer successfully matched to event" });
+  } catch (err) {
+    console.error("Error creating match:", err);
+    res.status(500).json({ error: "Failed to match volunteer" });
+  }
+});
+
+router.get("/events/:eventId/matches", async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    const [[event]] = await pool.query(`
+      SELECT e.*, 
+             COUNT(DISTINCT a.volunteer_id) as current_assignments
+      FROM events e
+      LEFT JOIN assignments a ON a.event_id = e.id AND a.status NOT IN ('declined', 'cancelled')
+      WHERE e.id = ?
+      GROUP BY e.id
+    `, [eventId]);
+
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    if (event.capacity && event.current_assignments >= event.capacity) {
+      return res.status(400).json({ error: "Event is already at capacity" });
+    }
+
+    const [volunteers] = await pool.query(`
+      WITH event_required_skills AS (
+        SELECT skill_id, required_level FROM event_skills WHERE event_id = ?
+      ),
+      qualified_volunteers AS (
+        SELECT 
+          v.id as volunteer_id,
+          v.name,
+          v.city,
+          v.email,
+          v.phone,
+          v.bio,
+          COUNT(DISTINCT ers.skill_id) as matched_skills,
+          GROUP_CONCAT(DISTINCT s.name) as skills
+        FROM volunteers v
+        JOIN volunteer_skills vs ON vs.volunteer_id = v.id
+        JOIN skills s ON s.id = vs.skill_id
+        LEFT JOIN event_required_skills ers ON ers.skill_id = vs.skill_id
+          AND CASE 
+              WHEN ers.required_level = 'advanced' THEN vs.proficiency = 'advanced'
+              WHEN ers.required_level = 'intermediate' THEN vs.proficiency IN ('intermediate', 'advanced')
+              ELSE vs.proficiency IN ('basic', 'intermediate', 'advanced')
+          END
+        LEFT JOIN assignments a ON a.volunteer_id = v.id 
+          AND a.event_id = ?
+          AND a.status NOT IN ('declined', 'cancelled')
+        WHERE a.id IS NULL
+        GROUP BY v.id
+      )
+      SELECT *,
+             (SELECT COUNT(*) FROM event_required_skills) as total_required_skills
+      FROM qualified_volunteers
+      HAVING matched_skills >= total_required_skills
+      ORDER BY matched_skills DESC, name ASC
+    `, [eventId, eventId]);
+
+    res.json({
+      event: {
+        ...event,
+        remainingCapacity: event.capacity
+          ? event.capacity - event.current_assignments
+          : null,
+      },
+      matches: volunteers.map(v => ({
+        id: v.volunteer_id,
+        name: v.name,
+        city: v.city,
+        email: v.email,
+        phone: v.phone,
+        bio: v.bio,
+        skills: v.skills ? v.skills.split(",") : [],
+        matchedSkills: v.matched_skills,
+      })),
+    });
+  } catch (err) {
+    console.error("Error finding matches:", err);
+    res.status(500).json({ error: "Failed to find matches" });
+  }
 });
 
 export default router;

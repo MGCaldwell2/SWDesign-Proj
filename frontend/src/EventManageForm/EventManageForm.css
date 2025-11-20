@@ -124,3 +124,13 @@ html, body, #root {
 .event-form-btn:hover {
   background: #1e4ed8;
 }
+
+.delete-btn {
+  background-color: #cc0000;
+  color: white;
+  border: none;
+  margin-top: 1rem;
+}
+.delete-btn:hover {
+  background-color: #a30000;
+}

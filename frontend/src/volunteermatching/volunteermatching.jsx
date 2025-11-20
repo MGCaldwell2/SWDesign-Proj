@@ -2,6 +2,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import "./VolunteerMatching.css";
 
+//const API_BASE = "http://localhost:5050/api";
 const API_BASE = "/api";
 
 export default function VolunteerMatching() {
@@ -12,21 +13,38 @@ export default function VolunteerMatching() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    Promise.all([
-      fetch(`${API_BASE}/volunteers`).then(r => r.json()),
-      fetch(`${API_BASE}/events`).then(r => r.json())
-    ])
-      .then(([vols, evts]) => {
-        setVolunteers(vols);
-        setEvents(evts);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        
+        const [volsRes, evtsRes] = await Promise.all([
+          fetch(`${API_BASE}/volunteers`, { headers }),
+          fetch(`${API_BASE}/events`, { headers })
+        ]);
+
+        if (!volsRes.ok || !evtsRes.ok) {
+          throw new Error('Failed to fetch data. Please make sure you are logged in.');
+        }
+
+        const [vols, evts] = await Promise.all([
+          volsRes.json(),
+          evtsRes.json()
+        ]);
+
+        setVolunteers(Array.isArray(vols) ? vols : []);
+        setEvents(Array.isArray(evts) ? evts : []);
         setLoading(false);
-      })
-      .catch((err) => {
-        setError("Failed to load volunteers or events.");
+      } catch (err) {
+        setError(err.message || "Failed to load volunteers or events. Please check your login status.");
         setLoading(false);
-      });
+      }
+    };
+
+    fetchData();
   }, []);
 
 
@@ -83,9 +101,13 @@ export default function VolunteerMatching() {
 
     setSaveStatus(null);
     try {
+      const token = localStorage.getItem('authToken');
       const res = await fetch(`${API_BASE}/match`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ volunteerId: selectedVolunteer.id, eventId: event.id })
       });
       const data = await res.json();
