@@ -6,6 +6,7 @@ import eventRoutes from "./routes/eventRoutes.js";
 import accountRouter from "./accountmanage.js";
 import volunteermatchingRouter from "./volunteermatching/volunteermatching.js";
 import notificationRouter from "./notification/notification.js";
+import reportRoutes from "./routes/reportRoutes.js";
 
 dotenv.config();
 
@@ -29,14 +30,13 @@ app.use(express.json());
 // Auth and events
 app.use("/api/auth", authRoutes);
 //app.use("/api/events", eventRoutes);
-
+app.use("/api/reports", reportRoutes);
 // Accounts
 app.use("/api/accounts", accountRouter);
 
 // Volunteer matching and notifications
 app.use("/api", volunteermatchingRouter);
 app.use("/api", notificationRouter);
-app.use("/api/accounts", accountRouter);
 
 // Hello + root
 app.get("/api/hello", (req, res) => res.json({ message: "Hello from the server 👋" }));
