@@ -278,89 +278,64 @@ function AdminDashboard() {
     </div>
   );
 
-  const renderReports = () => (
-    <div className="reports-content">
-      <div className="section-header">
-        <h2>📊 Reports & Analytics</h2>
-      </div>
-      
-      <div className="reports-grid">
-        <div className="report-card">
-          <h3>📈 Volunteer Engagement</h3>
-          <div className="report-stats">
-            <div className="report-stat">
-              <span className="stat-label">Active Volunteers:</span>
-              <span className="stat-value">{volunteers.length}</span>
-            </div>
-            <div className="report-stat">
-              <span className="stat-label">Total Hours:</span>
-              <span className="stat-value">{stats.totalHours}</span>
-            </div>
-            <div className="report-stat">
-              <span className="stat-label">Avg Hours/Volunteer:</span>
-              <span className="stat-value">
-                {volunteers.length > 0 ? (stats.totalHours / volunteers.length).toFixed(1) : 0}
-              </span>
+  const renderReports = () => {
+    const handleDownloadReport = (reportType, format) => {
+      const url = `http://localhost:5050/api/reports/${reportType}?format=${format}`;
+      window.open(url, '_blank');
+    };
+
+    return (
+      <div className="reports-content">
+        <div className="section-header">
+          <h2>📊 Download Reports</h2>
+        </div>
+        
+        <div className="reports-grid">
+          <div className="report-card">
+            <h3>📈 Volunteer Report</h3>
+            <p style={{ marginBottom: '1.5rem', color: '#666' }}>
+              Download comprehensive volunteer participation data
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button 
+                onClick={() => handleDownloadReport('volunteers', 'pdf')}
+                className="report-download-btn pdf"
+              >
+                📄 Download PDF
+              </button>
+              <button 
+                onClick={() => handleDownloadReport('volunteers', 'csv')}
+                className="report-download-btn csv"
+              >
+                📊 Download CSV
+              </button>
             </div>
           </div>
-          <Link to="/VolunteerLog" className="report-link">View Full History →</Link>
-        </div>
 
-        <div className="report-card">
-          <h3>📅 Event Statistics</h3>
-          <div className="report-stats">
-            <div className="report-stat">
-              <span className="stat-label">Total Events:</span>
-              <span className="stat-value">{stats.totalEvents}</span>
+          <div className="report-card">
+            <h3>📅 Event Report</h3>
+            <p style={{ marginBottom: '1.5rem', color: '#666' }}>
+              Download event details and volunteer assignments
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button 
+                onClick={() => handleDownloadReport('events', 'pdf')}
+                className="report-download-btn pdf"
+              >
+                📄 Download PDF
+              </button>
+              <button 
+                onClick={() => handleDownloadReport('events', 'csv')}
+                className="report-download-btn csv"
+              >
+                📊 Download CSV
+              </button>
             </div>
-            <div className="report-stat">
-              <span className="stat-label">Active Events:</span>
-              <span className="stat-value">{stats.activeEvents}</span>
-            </div>
-            <div className="report-stat">
-              <span className="stat-label">Completed:</span>
-              <span className="stat-value">{stats.totalEvents - stats.activeEvents}</span>
-            </div>
-          </div>
-          <Link to="/EventEdit" className="report-link">Manage Events →</Link>
-        </div>
-
-        <div className="report-card">
-          <h3>🎯 Top Skills in Demand</h3>
-          <div className="skills-demand-list">
-            {['First Aid', 'Spanish', 'Food Handling', 'Crowd Control', 'Data Entry'].map((skill, idx) => (
-              <div key={skill} className="demand-item">
-                <span className="demand-skill">{skill}</span>
-                <span className="demand-bar">
-                  <span className="demand-fill" style={{width: `${100 - (idx * 15)}%`}}></span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="report-card">
-          <h3>📬 Communication</h3>
-          <div className="communication-actions">
-            <Link to="/admin/notifications" className="comm-action-btn">
-              <span className="comm-icon">📢</span>
-              <div>
-                <strong>Send Notification</strong>
-                <p>Notify volunteers about updates</p>
-              </div>
-            </Link>
-            <Link to="/notifications" className="comm-action-btn">
-              <span className="comm-icon">📨</span>
-              <div>
-                <strong>View Sent Messages</strong>
-                <p>Check notification history</p>
-              </div>
-            </Link>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) {
     return (
