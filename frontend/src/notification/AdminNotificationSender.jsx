@@ -7,7 +7,7 @@ const API_BASE = "/api";
 function AdminNotificationSender() {
   const [volunteers, setVolunteers] = useState([]);
   const [events, setEvents] = useState([]);
-  const [targetType, setTargetType] = useState('volunteer'); // 'volunteer' or 'event'
+  const [targetType, setTargetType] = useState('volunteer'); // 'volunteer' | 'event' | 'broadcast'
   const [volunteerName, setVolunteerName] = useState('');
   const [eventId, setEventId] = useState('');
   const [type, setType] = useState('assignment');
@@ -29,6 +29,8 @@ function AdminNotificationSender() {
       body.volunteerName = volunteerName;
     } else if (targetType === 'event') {
       body.eventId = eventId;
+    } else if (targetType === 'broadcast') {
+      body.broadcast = true;
     }
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
@@ -65,6 +67,7 @@ function AdminNotificationSender() {
             <select value={targetType} onChange={e => setTargetType(e.target.value)}>
               <option value="volunteer">Specific Volunteer</option>
               <option value="event">All Volunteers in Event</option>
+              <option value="broadcast">All Volunteers (Broadcast)</option>
             </select>
           </div>
           {targetType === 'volunteer' && (

@@ -25,9 +25,11 @@ export default function Login() {
       const storedSession = sessionStorage.getItem("currentUser");
       if (storedLocal) {
         setRemember(true);
-        navigate("/");
+        const user = JSON.parse(storedLocal);
+        navigate(user.role === 'admin' ? "/admin/dashboard" : "/dashboard");
       } else if (storedSession) {
-        navigate("/");
+        const user = JSON.parse(storedSession);
+        navigate(user.role === 'admin' ? "/admin/dashboard" : "/dashboard");
       }
     } catch {
       /* ignore storage errors */
@@ -70,21 +72,28 @@ export default function Login() {
         return;
       }
 
-      // Store raw token (no JSON.stringify)
+      // Get user role from response (backend returns role directly in data)
+      const userRole = data.role || 'volunteer';
+      const userId = data.id || null;
+
+      // Store raw token (no JSON.stringify) and user info with role
+      const userInfo = { email, role: userRole, id: userId };
+      
       if (remember) {
         localStorage.setItem("token", token);
-        localStorage.setItem("currentUser", JSON.stringify({ email }));
+        localStorage.setItem("currentUser", JSON.stringify(userInfo));
         sessionStorage.removeItem("token");
         sessionStorage.removeItem("currentUser");
       } else {
         sessionStorage.setItem("token", token);
-        sessionStorage.setItem("currentUser", JSON.stringify({ email }));
+        sessionStorage.setItem("currentUser", JSON.stringify(userInfo));
         localStorage.removeItem("token");
         localStorage.removeItem("currentUser");
       }
 
       setMessage("Login successful");
-      navigate("/");
+      // Navigate based on role
+      navigate(userRole === 'admin' ? "/admin/dashboard" : "/dashboard");
     } catch (err) {
       setMessage("Login failed. Please try again.");
     }

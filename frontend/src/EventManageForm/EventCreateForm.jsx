@@ -7,9 +7,10 @@ export default function EventCreateForm() {
     name: "",
     description: "",
     location: "",
-    skills: [],
-    urgency: "",
     date: "",
+    capacity: "",
+    skills: [], // currently not persisted; kept for future enhancement
+    urgency: "",
   });
 
   const skillsOptions = [
@@ -36,25 +37,39 @@ export default function EventCreateForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
     try {
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        location: formData.location,
+        date: formData.date,
+        capacity: formData.capacity === "" ? null : Number(formData.capacity),
+      };
+
       const res = await fetch("http://localhost:5050/api/events", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
-
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text();
+        console.warn("Non-JSON response while creating event:", text);
+        data = { message: text }; // fallback
+      }
       console.log("Create Event Response:", res.status, data);
 
       if (res.ok) {
         navigate("/", { state: { successMessage: "✅ Event created successfully!" } });
       } else {
-        alert(data.message || "Failed to create event.");
+        alert(data.message || `Failed to create event (status ${res.status}).`);
       }
     } catch (err) {
       console.error("Error creating event:", err);
@@ -97,6 +112,16 @@ export default function EventCreateForm() {
 
         <label>Event Date</label>
         <input type="date" name="date" value={formData.date} onChange={handleChange} required />
+
+        <label>Capacity (optional)</label>
+        <input
+          type="number"
+          name="capacity"
+          min="0"
+          value={formData.capacity}
+          onChange={handleChange}
+          placeholder="e.g. 50"
+        />
 
         <button type="submit" className="event-form-btn">Create Event</button>
       </form>

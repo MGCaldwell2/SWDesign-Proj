@@ -11,14 +11,18 @@ function Notification() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // For demo, hardcode userId=1
-  const userId = 4;
+  // Derive userId from stored session (fallback to existing notification userId if absent)
+  const storedUser = (() => {
+    try { return JSON.parse(localStorage.getItem('currentUser') || '{}'); } catch { return {}; }
+  })();
+  const sessionUserId = storedUser?.id || storedUser?.userId || null;
 
   // Fetch notifications from backend
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch(`${API_BASE}/notifications?userId=${userId}`)
+    const initialUserId = sessionUserId ||  storedUser?.id || storedUser?.userId || 4; // fallback demo id
+    fetch(`${API_BASE}/notifications?userId=${initialUserId}`)
       .then(res => res.json())
       .then(data => {
         // Add title/priority for demo (backend doesn't provide)
@@ -47,21 +51,48 @@ function Notification() {
 
   // For demo, update local state only (backend does not support update/delete)
   const markAsRead = (id) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === id
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    );
-    setUnreadCount(prev => prev - 1);
+    // Optimistic update; revert if API fails
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+    // Use session user id if available; fallback to notification's own userId
+    const target = notifications.find(n => n.id === id);
+    const recipientId = target?.userId || sessionUserId;
+    fetch(`${API_BASE}/notifications/${id}/read`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: recipientId })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to mark read');
+      return res.json();
+    })
+    .catch(err => {
+      console.error(err);
+      // Revert optimistic update on failure
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: false } : n));
+      setUnreadCount(prev => prev + 1);
+    });
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, isRead: true }))
-    );
+    const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
+    const batchUserId = sessionUserId || (notifications[0] && notifications[0].userId);
+    // Optimistically mark all
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     setUnreadCount(0);
+    // Fire off parallel requests; no strict rollback, failures will log
+    Promise.allSettled(
+      unreadIds.map(id => fetch(`${API_BASE}/notifications/${id}/read`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: batchUserId })
+      }))
+    ).then(results => {
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length) {
+        console.warn('Some notifications failed to mark as read');
+      }
+    });
   };
 
   const deleteNotification = (id) => {

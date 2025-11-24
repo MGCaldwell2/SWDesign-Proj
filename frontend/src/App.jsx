@@ -25,6 +25,7 @@ export default function App() {
         <Route path="/VolunteerMatching" element={<div style={{ padding: 20 }}><VolunteerMatching /></div>} />
         <Route path="/VolunteerLog" element={<div style={{ padding: 20 }}><VolunteerLog /></div>} />
         <Route path="/Login" element={<div style={{ padding: 20 }}><Login /></div>} />
+        <Route path="/login" element={<div style={{ padding: 20 }}><Login /></div>} />
         <Route path="/AccountManage" element={<div style={{ padding: 20 }}><AccountManage /></div>} />
         <Route path="/notifications" element={<Notification />} />
         <Route path="/admin/notifications" element={<AdminNotificationSender />} />

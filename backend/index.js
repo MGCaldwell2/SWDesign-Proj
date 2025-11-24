@@ -28,7 +28,7 @@ app.use(express.json());
 // --- Routes ---
 // Auth and events
 app.use("/api/auth", authRoutes);
-//app.use("/api/events", eventRoutes);
+app.use("/api/events", eventRoutes); // enable events CRUD
 
 // Accounts
 app.use("/api/accounts", accountRouter);

@@ -52,40 +52,27 @@ function AdminDashboard() {
         setVolunteers(volData);
       }
 
-      // Fetch events
+      // Fetch events and build activity
       const evtRes = await fetch(`${API_BASE}/events`);
       if (evtRes.ok) {
         const evtData = await evtRes.json();
         setEvents(evtData);
-        
-        // Calculate active events (upcoming)
-        const activeEvents = evtData.filter(event => {
-          const eventDate = new Date(event.date);
-          return eventDate >= new Date();
-        }).length;
 
-        setStats(prev => ({
-          ...prev,
-          totalEvents: evtData.length,
-          activeEvents
-        }));
-      }
+        const now = new Date();
+        const activeEvents = evtData.filter(event => new Date(event.date) >= now).length;
+        setStats(prev => ({ ...prev, totalEvents: evtData.length, activeEvents }));
 
-      // Calculate total volunteer hours from localStorage
-      const savedLogs = localStorage.getItem("volunteerLogs");
-      if (savedLogs) {
-        const logs = JSON.parse(savedLogs);
-        const totalHours = logs.reduce((sum, log) => sum + (Number(log.hours) || 0), 0);
-        setStats(prev => ({ ...prev, totalHours }));
-        
-        // Get recent activity
-        const recent = logs.slice(-5).reverse().map((log, idx) => ({
-          id: idx,
-          type: 'hours_logged',
-          message: `${log.name} logged ${log.hours} hours`,
-          timestamp: log.timestamp
-        }));
-        setRecentActivity(recent);
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const upcoming = evtData.filter(e => new Date(e.date) >= now);
+        const pastWeek = evtData.filter(e => {
+          const d = new Date(e.date);
+          return d < now && d >= weekAgo;
+        });
+        const activity = [
+          ...upcoming.map(e => ({ id: `u-${e.id}`, type: 'upcoming', message: `Upcoming: ${e.name}`, timestamp: e.date })),
+          ...pastWeek.map(e => ({ id: `p-${e.id}`, type: 'pastWeek', message: `Completed: ${e.name}`, timestamp: e.date }))
+        ].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+        setRecentActivity(activity);
       }
 
       setStats(prev => ({
@@ -130,13 +117,7 @@ function AdminDashboard() {
             <p>Active Events</p>
           </div>
         </div>
-        <div className="admin-stat-card hours">
-          <div className="stat-icon">⏱️</div>
-          <div className="stat-content">
-            <h3>{stats.totalHours}</h3>
-            <p>Total Hours</p>
-          </div>
-        </div>
+        {/* Total Hours removed per request */}
       </div>
 
       <div className="admin-grid">
@@ -151,11 +132,11 @@ function AdminDashboard() {
               recentActivity.map(activity => (
                 <div key={activity.id} className="activity-item">
                   <div className="activity-icon">
-                    {activity.type === 'hours_logged' ? '⏱️' : '📋'}
+                    {activity.type === 'upcoming' ? '✨' : '✅'}
                   </div>
                   <div className="activity-content">
                     <p className="activity-message">{activity.message}</p>
-                    <span className="activity-time">{activity.timestamp}</span>
+                    <span className="activity-time">{new Date(activity.timestamp).toLocaleDateString()}</span>
                   </div>
                 </div>
               ))
@@ -168,12 +149,7 @@ function AdminDashboard() {
             <h2>🎯 Quick Stats</h2>
           </div>
           <div className="quick-stats">
-            <div className="quick-stat-item">
-              <span className="stat-label">Avg Hours per Volunteer:</span>
-              <span className="stat-value">
-                {volunteers.length > 0 ? (stats.totalHours / volunteers.length).toFixed(1) : 0}
-              </span>
-            </div>
+            {/* Avg Hours per Volunteer removed per request */}
             <div className="quick-stat-item">
               <span className="stat-label">Events This Month:</span>
               <span className="stat-value">{stats.activeEvents}</span>
@@ -186,31 +162,7 @@ function AdminDashboard() {
         </div>
       </div>
 
-      <div className="admin-actions">
-        <h2>⚡ Admin Actions</h2>
-        <div className="admin-action-buttons">
-          <Link to="/EventCreate" className="admin-action-btn primary">
-            <span className="btn-icon">➕</span>
-            <span>Create New Event</span>
-          </Link>
-          <Link to="/EventEdit" className="admin-action-btn secondary">
-            <span className="btn-icon">✏️</span>
-            <span>Manage Events</span>
-          </Link>
-          <Link to="/VolunteerMatching" className="admin-action-btn secondary">
-            <span className="btn-icon">🤝</span>
-            <span>Match Volunteers</span>
-          </Link>
-          <Link to="/admin/notifications" className="admin-action-btn secondary">
-            <span className="btn-icon">📢</span>
-            <span>Send Notification</span>
-          </Link>
-          <Link to="/VolunteerLog" className="admin-action-btn secondary">
-            <span className="btn-icon">📚</span>
-            <span>View All History</span>
-          </Link>
-        </div>
-      </div>
+      {/* Admin Actions section removed per request */}
     </div>
   );
 
@@ -270,9 +222,14 @@ function AdminDashboard() {
     <div className="events-content">
       <div className="section-header">
         <h2>📅 Event Management</h2>
-        <Link to="/EventCreate" className="create-event-btn">
-          <span>➕</span> Create Event
-        </Link>
+        <div style={{display:'flex', gap:'0.75rem', flexWrap:'wrap'}}>
+          <Link to="/EventCreate" className="create-event-btn">
+            <span>➕</span> Create Event
+          </Link>
+          <Link to="/admin/notifications" className="send-notification-btn">
+            <span>📢</span> Send Notification
+          </Link>
+        </div>
       </div>
       <div className="events-grid">
         {events.length === 0 ? (

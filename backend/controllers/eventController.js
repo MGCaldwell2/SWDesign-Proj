@@ -30,6 +30,8 @@ export const getEventById = async (req, res) => {
 export const createEvent = async (req, res) => {
   try {
     let { name, description, location, date, capacity } = req.body || {};
+    // created_by from authenticated user if available
+    const created_by = req.user?.id || null;
 
     name = typeof name === "string" ? name.trim() : "";
     description = typeof description === "string" ? description.trim() : "";
@@ -49,8 +51,8 @@ export const createEvent = async (req, res) => {
     }
 
     const [result] = await pool.query(
-      "INSERT INTO events (name, description, location, date, capacity) VALUES (?, ?, ?, ?, ?)",
-      [name, description, location, date, capacity]
+      "INSERT INTO events (name, description, location, date, capacity, created_by) VALUES (?, ?, ?, ?, ?, ?)",
+      [name, description, location, date, capacity, created_by]
     );
 
     const [newEvent] = await pool.query("SELECT * FROM events WHERE id = ?", [result.insertId]);
