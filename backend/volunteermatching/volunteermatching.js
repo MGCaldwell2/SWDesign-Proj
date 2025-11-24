@@ -8,29 +8,53 @@ router.get("/volunteers", async (req, res) => {
     console.log("Fetching volunteers...");
     const [rows] = await pool.query(`
       SELECT 
-        v.id AS volunteer_id,
-        v.name AS volunteer_name,
-        v.city,
-        v.bio,
-        v.email,
-        v.phone,
-        COALESCE(GROUP_CONCAT(DISTINCT s.name SEPARATOR ', '), '') AS skills
-      FROM volunteers v
-      LEFT JOIN volunteer_skills vs ON vs.volunteer_id = v.id
-      LEFT JOIN skills s ON s.id = vs.skill_id
-      GROUP BY v.id
-      ORDER BY v.id;
+        u.id AS volunteer_id,
+        up.id AS user_profile_id,
+        u.display_name AS volunteer_name,
+        up.city,
+        up.full_name,
+        u.email,
+        u.phone,
+        up.skills,
+        up.availability
+      FROM users u
+      INNER JOIN UserProfile up ON up.user_id = u.id
+      WHERE u.role = 'volunteer'
+      ORDER BY u.id;
     `);
 
-    const volunteers = rows.map(row => ({
-      id: row.volunteer_id,
-      name: row.volunteer_name,
-      city: row.city,
-      bio: row.bio,
-      email: row.email,
-      phone: row.phone,
-      skills: row.skills ? row.skills.split(',').map(s => s.trim()) : []
-    }));
+    const volunteers = rows.map(row => {
+      let skills = [];
+      try {
+        if (row.skills) {
+          const parsed = typeof row.skills === 'string' ? JSON.parse(row.skills) : row.skills;
+          skills = Array.isArray(parsed) ? parsed : [];
+        }
+      } catch (e) {
+        console.warn(`Failed to parse skills for volunteer ${row.volunteer_id}`);
+      }
+
+      let availability = [];
+      try {
+        if (row.availability) {
+          const parsed = typeof row.availability === 'string' ? JSON.parse(row.availability) : row.availability;
+          availability = Array.isArray(parsed) ? parsed : [];
+        }
+      } catch (e) {
+        console.warn(`Failed to parse availability for volunteer ${row.volunteer_id}`);
+      }
+
+      return {
+        id: row.volunteer_id,
+        volunteersTableId: row.volunteers_table_id,
+        name: row.volunteer_name || row.full_name,
+        city: row.city,
+        email: row.email,
+        phone: row.phone,
+        skills,
+        availability
+      };
+    });
 
     console.log(`Found ${volunteers.length} volunteers`);
     res.json(volunteers);
@@ -86,39 +110,164 @@ router.post("/match", async (req, res) => {
   }
 
   try {
-    // Check if already assigned
-    const [existing] = await pool.query(
-      "SELECT id FROM assignments WHERE volunteer_id = ? AND event_id = ?",
-      [volunteerId, eventId]
-    );
-    if (existing.length > 0) {
-      return res.status(400).json({ error: "Volunteer already assigned to this event" });
-    }
-
-    // Insert into assignments
-    await pool.query(
-      "INSERT INTO assignments (volunteer_id, event_id, status) VALUES (?, ?, 'assigned')",
-      [volunteerId, eventId]
-    );
-
-    // Find linked user for volunteer
-    const [[volUser]] = await pool.query(
-      "SELECT user_id FROM volunteers WHERE id = ?",
+    // Get UserProfile to verify user has a profile
+    const [[userProfile]] = await pool.query(
+      "SELECT user_id FROM UserProfile WHERE user_id = ?",
       [volunteerId]
     );
 
-    // Create notification for that user
-    if (volUser?.user_id) {
-      await pool.query(
-        "INSERT INTO notifications (recipient_user_id, type, message, event_id) VALUES (?, 'assignment', ?, ?)",
-        [volUser.user_id, "You’ve been assigned to an event.", eventId]
-      );
+    if (!userProfile) {
+      return res.status(400).json({ error: "User profile not found. Please complete your profile first." });
     }
 
-    res.json({ success: true, message: "Volunteer successfully matched to event" });
+    // Get event details
+    const [[event]] = await pool.query(
+      "SELECT id, name FROM events WHERE id = ?",
+      [eventId]
+    );
+
+    if (!event) {
+      return res.status(400).json({ error: "Event not found" });
+    }
+
+    // Check if already registered in VolunteerHistory
+    const [existing] = await pool.query(
+      "SELECT 1 FROM VolunteerHistory WHERE user_id = ? AND event_description = ? LIMIT 1",
+      [volunteerId, event.name]
+    );
+    
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "Volunteer already registered for this event", alreadyRegistered: true });
+    }
+
+    // Insert into VolunteerHistory table (users.id = UserCredentials.user_id)
+    await pool.query(
+      `INSERT INTO VolunteerHistory (user_id, event_description, hours, status, volunteer_date) 
+       VALUES (?, ?, 0, 'Completed', CURDATE())`,
+      [volunteerId, event.name]
+    );
+
+    // Create notification for the user
+    await pool.query(
+      "INSERT INTO notifications (recipient_user_id, type, message, event_id) VALUES (?, 'assignment', ?, ?)",
+      [volunteerId, `You've been registered for ${event.name}.`, eventId]
+    );
+
+    res.json({ success: true, message: "Volunteer successfully registered for event" });
   } catch (err) {
     console.error("Error creating match:", err);
-    res.status(500).json({ error: "Failed to match volunteer" });
+    console.error("SQL Error details:", {
+      code: err.code,
+      errno: err.errno,
+      sql: err.sql,
+      sqlMessage: err.sqlMessage
+    });
+    res.status(500).json({ error: "Failed to match volunteer", details: err.message });
+  }
+});
+
+router.get("/volunteer/:volunteerId/registrations", async (req, res) => {
+  const { volunteerId } = req.params;
+
+  try {
+    // Verify user has a profile
+    const [[userProfile]] = await pool.query(
+      "SELECT user_id FROM UserProfile WHERE user_id = ?",
+      [volunteerId]
+    );
+
+    if (!userProfile) {
+      return res.json({ eventNames: [] });
+    }
+
+    // Get registered events from VolunteerHistory
+    const [registrations] = await pool.query(
+      "SELECT event_description FROM VolunteerHistory WHERE user_id = ?",
+      [volunteerId]
+    );
+
+    const eventNames = registrations.map(r => r.event_description);
+    res.json({ eventNames });
+  } catch (err) {
+    console.error("Error fetching registrations:", err);
+    res.status(500).json({ error: "Failed to fetch registrations" });
+  }
+});
+
+// Volunteer completed history (events user has completed)
+router.get("/volunteer/:volunteerId/history", async (req, res) => {
+  const { volunteerId } = req.params;
+  const idNum = Number(volunteerId);
+  if (!Number.isInteger(idNum)) return res.status(400).json({ error: "Invalid volunteerId" });
+  try {
+    const [rows] = await pool.query(
+      `SELECT log_id, event_description, hours, status, volunteer_date, timestamp
+       FROM VolunteerHistory
+       WHERE user_id = ?
+       ORDER BY volunteer_date DESC, timestamp DESC`,
+      [idNum]
+    );
+    // Parse and normalize
+    const history = rows.map(r => ({
+      id: r.log_id,
+      name: r.event_description,
+      hours: Number(r.hours) || 0,
+      status: r.status,
+      date: r.volunteer_date || null,
+      timestamp: r.timestamp,
+    }));
+    res.json({ history });
+  } catch (err) {
+    console.error("Error fetching volunteer history:", err);
+    res.status(500).json({ error: "Failed to fetch volunteer history" });
+  }
+});
+
+// Add sample volunteer history (for testing/demo purposes)
+router.post("/volunteer/:volunteerId/history/seed", async (req, res) => {
+  const { volunteerId } = req.params;
+  const idNum = Number(volunteerId);
+  if (!Number.isInteger(idNum)) return res.status(400).json({ error: "Invalid volunteerId" });
+  
+  try {
+    // Get some events to create history for
+    const [events] = await pool.query(
+      `SELECT id, name FROM events ORDER BY date DESC LIMIT 3`
+    );
+    
+    if (events.length === 0) {
+      return res.status(400).json({ error: "No events available to create history" });
+    }
+    
+    // Create history records for each event
+    const sampleHistory = events.map((event, index) => {
+      const daysAgo = (index + 1) * 7; // 7, 14, 21 days ago
+      const volunteerDate = new Date();
+      volunteerDate.setDate(volunteerDate.getDate() - daysAgo);
+      
+      return [
+        idNum,
+        event.name,
+        4 + index, // 4-6 hours
+        'Completed',
+        volunteerDate.toISOString().split('T')[0]
+      ];
+    });
+    
+    await pool.query(
+      `INSERT INTO VolunteerHistory (user_id, event_description, hours, status, volunteer_date) 
+       VALUES ?`,
+      [sampleHistory]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: `Added ${sampleHistory.length} sample history records`,
+      count: sampleHistory.length
+    });
+  } catch (err) {
+    console.error("Error seeding volunteer history:", err);
+    res.status(500).json({ error: "Failed to seed volunteer history" });
   }
 });
 

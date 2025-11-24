@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./accountmanage.css";
 
 export default function AccountManage({ states = [], skills = [] }) {
@@ -13,7 +14,19 @@ export default function AccountManage({ states = [], skills = [] }) {
     preferences: "",
     availability: []
   });
+  const [userId, setUserId] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Load current user id from localStorage
+    try {
+      const stored = JSON.parse(localStorage.getItem("currentUser"));
+      if (stored?.id) setUserId(stored.id);
+      if (stored?.role) setUserRole(stored.role);
+    } catch {}
+  }, []);
 
   const us_state = [
     ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"],
@@ -201,6 +214,7 @@ export default function AccountManage({ states = [], skills = [] }) {
     const fd = new FormData(form);
 
     const payload = {
+      user_id: userId,
       full_name: fd.get("fullName") || "",
       address1: fd.get("address1") || "",
       address2: fd.get("address2") || "",
@@ -212,6 +226,11 @@ export default function AccountManage({ states = [], skills = [] }) {
       availability: fd.getAll("availability"),
     };
 
+    if (!userId) {
+      alert("Missing user ID. Please re-login.");
+      return;
+    }
+
     try {
       const res = await fetch("http://localhost:5050/api/accounts", {
         method: "POST",
@@ -222,6 +241,9 @@ export default function AccountManage({ states = [], skills = [] }) {
       const saved = await res.json();
       console.log("Saved account (MySQL):", saved);
       setShowPopup(true);
+      // Redirect based on role after short delay
+      const target = userRole === "admin" ? "/admin/dashboard" : "/dashboard";
+      setTimeout(() => navigate(target), 800);
       // Optionally reset form here: form.reset();
     } catch (err) {
       console.error("Failed to save account", err);
@@ -250,6 +272,9 @@ export default function AccountManage({ states = [], skills = [] }) {
         >
           Save Profile
         </button>
+        {!userId && (
+          <p style={{ color: "red", marginTop: "0.5rem" }}>User ID not found – cannot save profile.</p>
+        )}
       </form>
 
       {/* Success popup */}

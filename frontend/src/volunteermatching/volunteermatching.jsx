@@ -1,16 +1,19 @@
 
 import React, { useMemo, useState, useEffect } from "react";
-import "./VolunteerMatching.css";
+import "./volunteermatching.css";
 
-//const API_BASE = "http://localhost:5050/api";
 const API_BASE = "/api";
 
 export default function VolunteerMatching() {
-
   const [volunteers, setVolunteers] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedVolunteerId, setSelectedVolunteerId] = useState(null);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [saveStatus, setSaveStatus] = useState(null);
+  const [registeredEventIds, setRegisteredEventIds] = useState(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,58 +50,78 @@ export default function VolunteerMatching() {
     fetchData();
   }, []);
 
+  // Fetch registration status when volunteer is selected
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      if (!selectedVolunteerId) {
+        setRegisteredEventIds(new Set());
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/volunteer/${selectedVolunteerId}/registrations`);
+        if (res.ok) {
+          const data = await res.json();
+          // data.eventNames contains array of event names instead of IDs
+          setRegisteredEventIds(new Set(data.eventNames));
+        }
+      } catch (err) {
+        console.error("Failed to fetch registrations:", err);
+      }
+    };
+
+    fetchRegistrations();
+  }, [selectedVolunteerId]);
+
 
   function skillOverlap(volunteer, event) {
     const v = new Set(volunteer?.skills || []);
     const req = event?.requiredSkills || [];
     return req.reduce((acc, s) => acc + (v.has(s) ? 1 : 0), 0);
   }
+
   function isEligible(volunteer, event) {
     const reqLen = (event?.requiredSkills || []).length || 0;
-    if (reqLen === 0) return true; 
+    
+    // If no skills are required, everyone is eligible
+    if (reqLen === 0) return true;
+    
+    // If skills are required, volunteer must have at least 50% of them
     const overlap = skillOverlap(volunteer, event);
-    return overlap > reqLen / 2;
+    return overlap >= reqLen / 2;
   }
 
-  function bestBySkills(volunteer, evts) {
-    if (!volunteer || !evts?.length) return { event: null, meta: null };
-    let best = { event: null, overlap: -1, reqLen: 0 };
-    for (const e of evts) {
-      const reqLen = (e.requiredSkills || []).length;
-      const overlap = skillOverlap(volunteer, e);
-      if (isEligible(volunteer, e) && overlap > best.overlap) {
-        best = { event: e, overlap, reqLen };
-      }
-    }
-    if (!best.event) return { event: null, meta: null };
-    return { event: best.event, meta: { overlap: best.overlap, reqLen: best.reqLen } };
-  }
+  const selectedVolunteer = useMemo(
+    () => volunteers.find((v) => v.id === Number(selectedVolunteerId)),
+    [selectedVolunteerId, volunteers]
+  );
 
+  const eligibleEvents = useMemo(() => {
+    if (!selectedVolunteer) return [];
+    return events
+      .filter((e) => isEligible(selectedVolunteer, e))
+      .map((e) => ({
+        ...e,
+        overlap: skillOverlap(selectedVolunteer, e),
+        reqLen: (e.requiredSkills || []).length
+      }))
+      .sort((a, b) => b.overlap - a.overlap);
+  }, [selectedVolunteer, events]);
 
-  // Wait for volunteers/events to load before setting default
-  const [selectedVolunteerId, setSelectedVolunteerId] = useState(null);
-  useEffect(() => {
-    if (volunteers.length > 0 && selectedVolunteerId == null) {
-      setSelectedVolunteerId(volunteers[0].id);
-    }
-  }, [volunteers, selectedVolunteerId]);
+  const filteredVolunteers = useMemo(() => {
+    if (!searchTerm.trim()) return volunteers;
+    const term = searchTerm.toLowerCase();
+    return volunteers.filter(
+      (v) =>
+        v.name?.toLowerCase().includes(term) ||
+        v.email?.toLowerCase().includes(term) ||
+        v.city?.toLowerCase().includes(term)
+    );
+  }, [volunteers, searchTerm]);
 
-  const selectedVolunteer = useMemo(() => volunteers.find((v) => v.id === Number(selectedVolunteerId)), [selectedVolunteerId, volunteers]);
-  const suggested = useMemo(() => bestBySkills(selectedVolunteer, events), [selectedVolunteer, events]);
-  const [selectedEventId, setSelectedEventId] = useState("");
-
-  useEffect(() => {
-    setSelectedEventId(suggested.event?.id ?? "");
-  }, [suggested.event?.id]);
-
-  const [lastSaved, setLastSaved] = useState(null);
-
-  const [saveStatus, setSaveStatus] = useState(null); // {type: 'success'|'error', message: string}
-  async function handleSave() {
-    const event = events.find((e) => e.id === Number(selectedEventId));
-    if (!selectedVolunteer || !event) return;
-    if (!isEligible(selectedVolunteer, event)) return;
-
+  async function handleMatch(eventId) {
+    if (!selectedVolunteer || !eventId) return;
+    
     setSaveStatus(null);
     try {
       const token = localStorage.getItem('authToken');
@@ -108,115 +131,203 @@ export default function VolunteerMatching() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ volunteerId: selectedVolunteer.id, eventId: event.id })
+        body: JSON.stringify({ volunteerId: selectedVolunteer.id, eventId })
       });
       const data = await res.json();
       if (!res.ok) {
         setSaveStatus({ type: "error", message: data.error || "Failed to match volunteer." });
         return;
       }
-      setLastSaved({ volunteer: selectedVolunteer.name, event: event?.name, when: new Date().toLocaleString() });
-      setSaveStatus({ type: "success", message: `Matched ${selectedVolunteer.name} to ${event.name}` });
+      const event = events.find(e => e.id === eventId);
+      setSaveStatus({ 
+        type: "success", 
+        message: `✓ Successfully registered ${selectedVolunteer.name} for ${event?.name}` 
+      });
+      
+      // Refresh registration status - now using event names instead of IDs
+      setRegisteredEventIds(prev => new Set([...prev, event.name]));
+      
+      setTimeout(() => setSaveStatus(null), 5000);
     } catch (err) {
       setSaveStatus({ type: "error", message: "Network error. Please try again." });
     }
   }
 
-  const eligibleEventIds = useMemo(() => new Set(events.filter((e) => isEligible(selectedVolunteer, e)).map((e) => e.id)), [selectedVolunteer, events]);
-  const canSave = selectedEventId && eligibleEventIds.has(Number(selectedEventId));
-
   if (loading) {
-    return <div className="vm-container"><div className="vm-card"><h2>Loading volunteers and events...</h2></div></div>;
+    return (
+      <div className="vm-container">
+        <div className="vm-loading">Loading volunteers and events...</div>
+      </div>
+    );
   }
+
   if (error) {
-    return <div className="vm-container"><div className="vm-card"><h2 style={{color: 'red'}}>{error}</h2></div></div>;
+    return (
+      <div className="vm-container">
+        <div className="vm-error">{error}</div>
+      </div>
+    );
   }
 
   return (
     <div className="vm-container">
-      <div className="vm-card">
-        <h1 className="vm-title">Volunteer Matching Form</h1>
+      <div className="vm-header">
+        <h1 className="vm-title">Volunteer Matching</h1>
         <p className="vm-subtitle">
-          Matching is based on <strong>skills</strong> only. Choose an eligible event; pick based on your own availability. (Event date & location shown below.)
+          Select a volunteer to see eligible events based on their skills. Click "Match" on any event card to assign them.
         </p>
+      </div>
 
-        <div className="vm-field">
-          <label>Volunteer Name</label>
-          <select value={selectedVolunteerId ?? ""} onChange={(e) => setSelectedVolunteerId(e.target.value)}>
-            {volunteers.map((v) => (
-              <option key={v.id} value={v.id}>{v.name}</option>
-            ))}
-          </select>
+      {saveStatus && (
+        <div className={`vm-notification ${saveStatus.type}`}>
+          {saveStatus.message}
         </div>
+      )}
 
-        <div className="vm-field">
-          <label>Matched Event (Skills-Eligible)</label>
-          <select
-            value={selectedEventId ?? ""}
-            onChange={(e) => setSelectedEventId(e.target.value)}
-          >
-            {events.map((e) => {
-              const reqLen = (e.requiredSkills || []).length;
-              const ov = skillOverlap(selectedVolunteer, e);
-              const eligible = eligibleEventIds.has(e.id);
-              const label = `${e.name} — ${e.date} (${e.location}) ${reqLen ? `• skills ${ov}/${reqLen}` : ""}`;
-              return (
-                <option key={e.id} value={e.id} disabled={!eligible} title={eligible ? "Eligible" : "Not eligible: majority of required skills missing"}>
-                  {eligible ? label : `${label} — NOT ELIGIBLE`}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+      <div className="vm-layout">
+        {/* Volunteer Selection Sidebar */}
+        <aside className="vm-sidebar">
+          <div className="vm-sidebar-header">
+            <h2>Select Volunteer</h2>
+            <input
+              type="text"
+              placeholder="Search by name, email, or city..."
+              className="vm-search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-        <div className="vm-reasons">
-          {suggested?.event ? (
-            <div>
-              Suggested by skills: <strong>{suggested.event.name}</strong>
-              {typeof suggested?.meta?.overlap === "number" && (
-                <span>{` • skills ${suggested.meta.overlap}/${suggested.meta.reqLen}`}</span>
+          <div className="vm-volunteer-list">
+            {filteredVolunteers.length === 0 ? (
+              <div className="vm-empty">No volunteers found</div>
+            ) : (
+              filteredVolunteers.map((v) => (
+                <VolunteerCard
+                  key={v.id}
+                  volunteer={v}
+                  isSelected={selectedVolunteerId === v.id}
+                  onClick={() => setSelectedVolunteerId(v.id)}
+                />
+              ))
+            )}
+          </div>
+        </aside>
+
+        {/* Events Grid */}
+        <main className="vm-main">
+          {!selectedVolunteer ? (
+            <div className="vm-empty-state">
+              <h3>Select a volunteer to view eligible events</h3>
+              <p>Choose a volunteer from the list on the left to see which events they qualify for based on their skills.</p>
+            </div>
+          ) : eligibleEvents.length === 0 ? (
+            <div className="vm-empty-state">
+              <h3>No Eligible Events</h3>
+              <p>{selectedVolunteer.name} doesn't have the required skills for any available events.</p>
+              {selectedVolunteer.skills?.length > 0 && (
+                <p className="vm-skills-info">
+                  Skills: {selectedVolunteer.skills.join(", ")}
+                </p>
               )}
             </div>
           ) : (
-            <em>No events are skills-eligible for this volunteer.</em>
+            <>
+              <div className="vm-main-header">
+                <h2>Eligible Events for {selectedVolunteer.name}</h2>
+                <span className="vm-event-count">{eligibleEvents.length} event{eligibleEvents.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="vm-events-grid">
+                {eligibleEvents.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    isRegistered={registeredEventIds.has(event.name)}
+                    onMatch={() => handleMatch(event.id)}
+                  />
+                ))}
+              </div>
+            </>
           )}
-        </div>
-
-        {selectedEventId && (
-          <EventDetails event={events.find((e) => e.id === Number(selectedEventId))} />
-        )}
-
-        <div className="vm-actions">
-          <button onClick={handleSave} disabled={!canSave}>
-            Save Match
-          </button>
-          <button onClick={() => window.location.reload()}>Reset</button>
-        </div>
-
-        {saveStatus && (
-          <div className={`vm-save-status ${saveStatus.type}`}>{saveStatus.message}</div>
-        )}
-        {lastSaved && (
-          <div className="vm-saved">Saved: {lastSaved.volunteer} → {lastSaved.event} ({lastSaved.when})</div>
-        )}
+        </main>
       </div>
     </div>
   );
 }
 
-function EventDetails({ event }) {
-  if (!event) return null;
+function VolunteerCard({ volunteer, isSelected, onClick }) {
   return (
-    <div className="vm-event-details">
-      <div className="vm-event-title">{event.name}</div>
-      <div className="vm-event-meta">{event.date} • {event.location}</div>
-      {event.description && (<p>{event.description}</p>)}
-      {event.requiredSkills?.length ? (
-        <p>Required: {event.requiredSkills.join(", ")}</p>
-      ) : null}
-      <p style={{ fontSize: 12, color: "#a9a9a9", marginTop: 8 }}>
-        Choose based on your availability; eligibility is determined by skills only.
-      </p>
+    <div
+      className={`volunteer-card ${isSelected ? 'selected' : ''}`}
+      onClick={onClick}
+    >
+      <div className="volunteer-card-header">
+        <h3>{volunteer.name}</h3>
+        {isSelected && <span className="selected-badge">Selected</span>}
+      </div>
+      <div className="volunteer-card-info">
+        {volunteer.email && <p className="volunteer-email">📧 {volunteer.email}</p>}
+        {volunteer.city && <p className="volunteer-city">📍 {volunteer.city}</p>}
+      </div>
+      {volunteer.skills?.length > 0 && (
+        <div className="volunteer-skills">
+          {volunteer.skills.slice(0, 3).map((skill, i) => (
+            <span key={i} className="skill-tag">{skill}</span>
+          ))}
+          {volunteer.skills.length > 3 && (
+            <span className="skill-tag more">+{volunteer.skills.length - 3} more</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EventCard({ event, isRegistered, onMatch }) {
+  const matchPercentage = event.reqLen > 0 
+    ? Math.round((event.overlap / event.reqLen) * 100) 
+    : 100;
+
+  return (
+    <div className="event-card">
+      <div className="event-card-header">
+        <h3>{event.name}</h3>
+        <div className="event-match-badge" data-level={matchPercentage >= 80 ? 'high' : matchPercentage >= 50 ? 'medium' : 'low'}>
+          {matchPercentage}% Match
+        </div>
+      </div>
+
+      <div className="event-meta">
+        <span className="event-date">📅 {event.date}</span>
+        <span className="event-location">📍 {event.location}</span>
+      </div>
+
+      {event.description && (
+        <p className="event-description">{event.description}</p>
+      )}
+
+      {event.capacity && (
+        <p className="event-capacity">Capacity: {event.capacity} volunteers</p>
+      )}
+
+      {event.requiredSkills?.length > 0 && (
+        <div className="event-skills">
+          <strong>Required Skills ({event.overlap}/{event.reqLen}):</strong>
+          <div className="skill-tags">
+            {event.requiredSkills.map((skill, i) => (
+              <span key={i} className="skill-tag">{skill}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button 
+        className={`event-match-btn ${isRegistered ? 'registered' : ''}`}
+        onClick={onMatch}
+        disabled={isRegistered}
+      >
+        {isRegistered ? '✓ Already Registered' : 'Match to This Event'}
+      </button>
     </div>
   );
 }

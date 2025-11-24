@@ -31,7 +31,8 @@ export async function register(req, res) {
     );
 
     const token = signToken({ id: ins.insertId, email, role: safeRole });
-    res.status(201).json({ id: ins.insertId, email, display_name, role: safeRole, token });
+    // Include needs_profile flag so frontend can redirect to Account Management flow
+    res.status(201).json({ id: ins.insertId, email, display_name, role: safeRole, token, needs_profile: true });
   } catch (err) {
     console.error("register error:", err);
     res.status(500).json({ message: "Registration failed" });

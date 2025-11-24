@@ -30,25 +30,26 @@ export const getVolunteerReport = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT
-        v.id AS volunteer_id,
-        v.name AS volunteer_name,
-        v.city AS volunteer_city,
-        v.email AS volunteer_email,
-        v.phone AS volunteer_phone,
-        v.active AS volunteer_active,
         u.id AS user_id,
+        u.email AS user_email,
         u.display_name AS user_display_name,
         u.role AS user_role,
+        up.full_name AS volunteer_full_name,
+        up.city AS volunteer_city,
+        up.state AS volunteer_state,
+        up.zipcode AS volunteer_zipcode,
+        up.skills AS volunteer_skills,
         h.log_id AS log_id,
         h.event_description AS event_description,
         h.hours AS hours,
         h.status AS status,
         h.volunteer_date AS volunteer_date,
         h.timestamp AS log_timestamp
-      FROM volunteers v
-      LEFT JOIN users u ON v.user_id = u.id
-      LEFT JOIN VolunteerHistory h ON h.user_id = v.user_id
-      ORDER BY v.name, h.volunteer_date, h.log_id
+      FROM users u
+      LEFT JOIN UserProfile up ON up.user_id = u.id
+      LEFT JOIN VolunteerHistory h ON h.user_id = u.id
+      WHERE u.role = 'volunteer'
+      ORDER BY u.display_name, h.volunteer_date DESC, h.log_id DESC
     `);
 
     /* -------- JSON -------- */
@@ -57,15 +58,14 @@ export const getVolunteerReport = async (req, res) => {
     /* -------- CSV -------- */
     if (format === "csv") {
       const header = [
-        "volunteer_id",
-        "volunteer_name",
-        "volunteer_city",
-        "volunteer_email",
-        "volunteer_phone",
-        "volunteer_active",
         "user_id",
+        "user_email",
         "user_display_name",
-        "user_role",
+        "volunteer_full_name",
+        "volunteer_city",
+        "volunteer_state",
+        "volunteer_zipcode",
+        "volunteer_skills",
         "log_id",
         "event_description",
         "hours",
@@ -81,20 +81,19 @@ export const getVolunteerReport = async (req, res) => {
         rows,
         (r) =>
           [
-            r.volunteer_id,
-            (r.volunteer_name || "").replace(/,/g, " "),
-            (r.volunteer_city || "").replace(/,/g, " "),
-            r.volunteer_email,
-            r.volunteer_phone,
-            r.volunteer_active,
             r.user_id,
+            r.user_email,
             (r.user_display_name || "").replace(/,/g, " "),
-            r.user_role,
-            r.log_id,
+            (r.volunteer_full_name || "").replace(/,/g, " "),
+            (r.volunteer_city || "").replace(/,/g, " "),
+            r.volunteer_state || "",
+            r.volunteer_zipcode || "",
+            r.volunteer_skills ? JSON.stringify(r.volunteer_skills).replace(/,/g, ";") : "",
+            r.log_id || "",
             (r.event_description || "").replace(/,/g, " "),
-            r.hours,
-            r.status,
-            r.volunteer_date,
+            r.hours || "",
+            r.status || "",
+            r.volunteer_date || "",
             r.log_timestamp
               ? new Date(r.log_timestamp).toISOString()
               : "",
@@ -119,20 +118,41 @@ export const getVolunteerReport = async (req, res) => {
     let currentVolunteer = null;
 
     rows.forEach((row) => {
-      const key = row.volunteer_id;
-      const volunteerName = row.volunteer_name || "(Unnamed Volunteer)";
+      const key = row.user_id;
+      const volunteerName = row.volunteer_full_name || row.user_display_name || "(Unnamed Volunteer)";
 
       if (key !== currentVolunteer) {
         currentVolunteer = key;
         doc.moveDown();
         doc.fontSize(14).text(volunteerName);
-        doc.fontSize(10).text(`Email: ${row.volunteer_email || "N/A"}`);
-        doc.fontSize(10).text(`City: ${row.volunteer_city || "N/A"}`);
+        doc.fontSize(10).text(`Email: ${row.user_email || "N/A"}`);
+        doc.fontSize(10).text(`City: ${row.volunteer_city || "N/A"}, ${row.volunteer_state || "N/A"}`);
+        doc.fontSize(10).text(`Zipcode: ${row.volunteer_zipcode || "N/A"}`);
+        
+        // Parse and display skills
+        if (row.volunteer_skills) {
+          try {
+            const skills = typeof row.volunteer_skills === 'string' 
+              ? JSON.parse(row.volunteer_skills) 
+              : row.volunteer_skills;
+            if (Array.isArray(skills) && skills.length > 0) {
+              doc.fontSize(10).text(`Skills: ${skills.join(", ")}`);
+            }
+          } catch (e) {
+            // Skip if skills parsing fails
+          }
+        }
+        
         doc.moveDown(0.3);
         doc.fontSize(11).text("Participation History:");
       }
 
-      if (!row.log_id) return;
+      if (!row.log_id) {
+        if (key !== currentVolunteer - 1) {
+          doc.fontSize(10).text("  No participation history recorded yet.");
+        }
+        return;
+      }
 
       const dateLabel = row.volunteer_date
         ? new Date(row.volunteer_date).toLocaleDateString()

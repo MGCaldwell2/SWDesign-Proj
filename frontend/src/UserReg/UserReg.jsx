@@ -40,10 +40,13 @@ export default function UserReg() {
       }
 
       if (data.token) {
+        // Persist full user object including id for profile creation
         localStorage.setItem("token", data.token);
-        localStorage.setItem("currentUser", JSON.stringify({ email }));
-        setSuccess("Registration successful! Redirecting…");
-        setTimeout(() => navigate("/"), 1200);
+        localStorage.setItem("currentUser", JSON.stringify({ id: data.id, email: data.email, role: data.role }));
+        setSuccess("Registration successful! Let's finish your profile…");
+        // Always redirect to Account Management when needs_profile flag present
+        const target = data.needs_profile ? "/AccountManage" : "/";
+        setTimeout(() => navigate(target), 800);
       } else {
         setSuccess("Registration successful! Redirecting to login…");
         setTimeout(() => navigate("/Login"), 1200);
