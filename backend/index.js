@@ -29,13 +29,10 @@ app.use(express.json());
 // --- Routes ---
 // Auth and events
 app.use("/api/auth", authRoutes);
-<<<<<<< HEAD
 app.use("/api/events", eventRoutes); // enable events CRUD
 
-=======
 //app.use("/api/events", eventRoutes);
 app.use("/api/reports", reportRoutes);
->>>>>>> 254c8147748ef07e9d0c8fb2aa69c6a058ccb0a2
 // Accounts
 app.use("/api/accounts", accountRouter);
 
