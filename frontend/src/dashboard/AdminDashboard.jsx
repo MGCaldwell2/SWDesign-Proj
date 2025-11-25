@@ -174,12 +174,13 @@ function AdminDashboard() {
               <th>Skills</th>
               <th>City</th>
               <th>Availability</th>
+              <th>Registered Events</th>
             </tr>
           </thead>
           <tbody>
             {volunteers.length === 0 ? (
               <tr>
-                <td colSpan="5" className="empty-cell">No volunteers found</td>
+                <td colSpan="6" className="empty-cell">No volunteers found</td>
               </tr>
             ) : (
               volunteers.map(volunteer => (
@@ -195,6 +196,13 @@ function AdminDashboard() {
                   </td>
                   <td>{volunteer.city}</td>
                   <td>{volunteer.availability?.length || 0} dates</td>
+                  <td>
+                    {volunteer.registeredEvents?.length > 0 ? (
+                      volunteer.registeredEvents.join(", ")
+                    ) : (
+                      "None"
+                    )}
+                  </td>
                 </tr>
               ))
             )}

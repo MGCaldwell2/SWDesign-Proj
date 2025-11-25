@@ -11,9 +11,15 @@ function Notification() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // Derive userId from stored session (fallback to existing notification userId if absent)
+  // Derive userId from stored session (check both localStorage and sessionStorage)
   const storedUser = (() => {
-    try { return JSON.parse(localStorage.getItem('currentUser') || '{}'); } catch { return {}; }
+    try { 
+      const localUser = localStorage.getItem('currentUser');
+      const sessionUser = sessionStorage.getItem('currentUser');
+      return JSON.parse(localUser || sessionUser || '{}'); 
+    } catch { 
+      return {}; 
+    }
   })();
   const sessionUserId = storedUser?.id || storedUser?.userId || null;
 
@@ -40,7 +46,7 @@ function Notification() {
         setError('Failed to load notifications.');
         setLoading(false);
       });
-  }, []);
+  }, [sessionUserId]);
 
   const getFilteredNotifications = () => {
     if (filter === 'all') return notifications;
@@ -163,8 +169,8 @@ function Notification() {
     <div className="notifications-container">
       <header className="notifications-header">
         <div className="header-content">
-          <Link to="/" className="back-button">
-            ← Back to Home
+          <Link to="/dashboard" className="back-button">
+            ← Back to Dashboard
           </Link>
           <div className="header-title">
             <h1>Notifications</h1>
@@ -249,14 +255,6 @@ function Notification() {
                       >
                         Mark as read
                       </button>
-                    )}
-                    {notification.eventId && (
-                      <Link 
-                        to={`/EventManage?event=${notification.eventId}`}
-                        className="action-btn view-event"
-                      >
-                        View Event
-                      </Link>
                     )}
                     <button 
                       onClick={() => deleteNotification(notification.id)}

@@ -23,6 +23,24 @@ router.get("/volunteers", async (req, res) => {
       ORDER BY u.id;
     `);
 
+    // Get all registered events for volunteers in a single query
+    const [registrations] = await pool.query(`
+      SELECT 
+        user_id,
+        event_description
+      FROM VolunteerHistory
+      WHERE user_id IN (?)
+    `, [rows.map(r => r.volunteer_id)]);
+
+    // Group registrations by user_id
+    const registrationsByUser = {};
+    registrations.forEach(reg => {
+      if (!registrationsByUser[reg.user_id]) {
+        registrationsByUser[reg.user_id] = [];
+      }
+      registrationsByUser[reg.user_id].push(reg.event_description);
+    });
+
     const volunteers = rows.map(row => {
       let skills = [];
       try {
@@ -47,12 +65,13 @@ router.get("/volunteers", async (req, res) => {
       return {
         id: row.volunteer_id,
         volunteersTableId: row.volunteers_table_id,
-        name: row.volunteer_name || row.full_name,
+        name: row.full_name || row.volunteer_name,
         city: row.city,
         email: row.email,
         phone: row.phone,
         skills,
-        availability
+        availability,
+        registeredEvents: registrationsByUser[row.volunteer_id] || []
       };
     });
 

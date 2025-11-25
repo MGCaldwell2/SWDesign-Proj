@@ -96,10 +96,23 @@ export default function VolunteerMatching() {
     return req.reduce((acc, s) => acc + (v.has(s) ? 1 : 0), 0);
   }
 
+  function isAvailable(volunteer, event) {
+    if (!event?.date) return true; // If no event date, consider available
+    
+    const eventDate = new Date(event.date).toISOString().split('T')[0];
+    const availability = volunteer?.availability || [];
+    
+    // Check if event date is in volunteer's availability
+    return availability.includes(eventDate);
+  }
+
   function isEligible(volunteer, event) {
     const reqLen = (event?.requiredSkills || []).length || 0;
     
-    // If no skills are required, everyone is eligible
+    // Check availability first
+    if (!isAvailable(volunteer, event)) return false;
+    
+    // If no skills are required, check availability only
     if (reqLen === 0) return true;
     
     // If skills are required, volunteer must have at least 50% of them
@@ -313,6 +326,9 @@ function EventCard({ event, isRegistered, onMatch }) {
       <div className="event-meta">
         <span className="event-date">📅 {event.date}</span>
         <span className="event-location">📍 {event.location}</span>
+        {event.urgency && (
+          <span className="event-urgency">⚡ {event.urgency}</span>
+        )}
       </div>
 
       {event.description && (

@@ -62,10 +62,13 @@ function UserDashboard() {
     setLoading(true);
     try {
       // Fetch notifications
-      const notifRes = await fetch(`${API_BASE}/notifications?userId=4`);
-      if (notifRes.ok) {
-        const notifData = await notifRes.json();
-        setNotifications(notifData.slice(0, 5)); // Get latest 5
+      const userId = currentUser?.id;
+      if (userId) {
+        const notifRes = await fetch(`${API_BASE}/notifications?userId=${userId}`);
+        if (notifRes.ok) {
+          const notifData = await notifRes.json();
+          setNotifications(notifData.slice(0, 5)); // Get latest 5
+        }
       }
 
       // eventsCompleted will be driven by volunteer history loaded separately
