@@ -1,26 +1,31 @@
+/* Page background – same vibe as AdminDashboard */
+html, body, #root {
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* White card container, like volunteers/profile box */
 .event-form-container {
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 24px;
-  background: #111;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-  font-family: 'Segoe UI', Arial, sans-serif;
-  color: #f0f0f0;
+  max-width: 800px;
+  margin: 3rem auto;
+  padding: 2rem 2.5rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  color: #111827;
 }
 
 .event-form-container h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #ffffff; 
+  text-align: left;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #111827;
+  font-size: 1.5rem;
 }
 
-html, body, #root {
-  min-height: 100vh; 
-  margin: 0;
-  background: #0b0b0b;
-}
-
+/* Form layout */
 .event-form {
   display: flex;
   flex-direction: column;
@@ -30,56 +35,63 @@ html, body, #root {
 .event-form label {
   font-weight: 600;
   margin-bottom: 4px;
-  color: #e0e0e0;
+  color: #374151;
 }
 
+/* Inputs/textarea/select styled like light card UI */
 .event-form input,
 .event-form textarea,
 .event-form select {
   padding: 10px;
-  border: 1px solid #555;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 1rem;
-  transition: border-color 0.2s;
-  background: #222;
-  color: #f0f0f0;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  background: #f9fafb;
+  color: #111827;
+}
+
+.event-form textarea {
+  resize: vertical;
 }
 
 .event-form input:focus,
 .event-form textarea:focus,
 .event-form select:focus {
-  border-color: #2563eb;
+  border-color: #1e3c72;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.25);
+  background: #ffffff;
 }
 
+/* Checkbox skills menu */
 .checkbox-menu {
   position: relative;
 }
 
 .checkbox-menu-header {
   padding: 10px;
-  border: 1px solid #555;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
-  background: #222;
-  color: #f0f0f0;
+  background: #f9fafb;
+  color: #111827;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* 🆕 Updated — Skills list now fits inside the box */
+/* Skills list stays inside the card */
 .checkbox-menu-list {
-  position: static;                 /* no floating */
-  background: #222;
-  color: #f0f0f0;
-  border: 1px solid #555;
+  position: static;
+  background: #f9fafb;
+  color: #111827;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
   padding: 12px;
   margin-top: 8px;
 
-  display: flex;                    /* neatly align checkboxes */
+  display: flex;
   flex-wrap: wrap;
   gap: 8px;
 
@@ -93,44 +105,57 @@ html, body, #root {
   gap: 8px;
   padding: 4px 8px;
   cursor: pointer;
-  color: #f0f0f0;
+  color: #111827;
+  border-radius: 4px;
 }
 
 .checkbox-menu-item input[type="checkbox"] {
-  accent-color: #2563eb;
+  accent-color: #1e3c72;
 }
 
 .checkbox-menu-item:hover {
-  background: #333;
+  background: #e5e7eb;
 }
 
 .arrow {
   font-size: 0.8rem;
-  color: #f0f0f0;
+  color: #4b5563;
 }
 
+/* Primary button – match dashboard gradient style */
 .event-form-btn {
   padding: 12px;
-  background: #2563eb;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   color: white;
   border: none;
   border-radius: 6px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  margin-top: 0.5rem;
 }
 
 .event-form-btn:hover {
-  background: #1e4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 60, 114, 0.35);
 }
 
+/* Delete button still red but styled to match */
 .delete-btn {
-  background-color: #cc0000;
+  background-color: #b91c1c;
   color: white;
   border: none;
   margin-top: 1rem;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
+
 .delete-btn:hover {
-  background-color: #a30000;
+  background-color: #991b1b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(153, 27, 27, 0.4);
 }

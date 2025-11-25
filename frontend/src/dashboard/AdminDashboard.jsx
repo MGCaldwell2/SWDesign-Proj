@@ -21,7 +21,6 @@ function AdminDashboard() {
   const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
-    // Check if user is logged in
     try {
       const localUser = localStorage.getItem("currentUser");
       const sessionUser = sessionStorage.getItem("currentUser");
@@ -45,14 +44,12 @@ function AdminDashboard() {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      // Fetch volunteers
       const volRes = await fetch(`${API_BASE}/volunteers`);
       if (volRes.ok) {
         const volData = await volRes.json();
         setVolunteers(volData);
       }
 
-      // Fetch events and build activity
       const evtRes = await fetch(`${API_BASE}/events`);
       if (evtRes.ok) {
         const evtData = await evtRes.json();
@@ -117,7 +114,6 @@ function AdminDashboard() {
             <p>Active Events</p>
           </div>
         </div>
-        {/* Total Hours removed per request */}
       </div>
 
       <div className="admin-grid">
@@ -149,7 +145,6 @@ function AdminDashboard() {
             <h2>🎯 Quick Stats</h2>
           </div>
           <div className="quick-stats">
-            {/* Avg Hours per Volunteer removed per request */}
             <div className="quick-stat-item">
               <span className="stat-label">Events This Month:</span>
               <span className="stat-value">{stats.activeEvents}</span>
@@ -161,8 +156,6 @@ function AdminDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Admin Actions section removed per request */}
     </div>
   );
 
@@ -337,6 +330,23 @@ function AdminDashboard() {
     );
   };
 
+  const renderProfile = () => (
+    <div className="admin-profile-content">
+      <div className="section-header">
+        <h2>👤 Profile</h2>
+      </div>
+      <div className="admin-profile-card">
+        <p><strong>Email:</strong> {currentUser?.email || 'Not provided'}</p>
+        <p><strong>Role:</strong> Administrator</p>
+        <div style={{ marginTop: '1rem' }}>
+          <Link to="/AccountManage" className="create-event-btn">
+            Edit Profile
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="admin-dashboard-container">
@@ -374,6 +384,12 @@ function AdminDashboard() {
           📊 Overview
         </button>
         <button 
+          className={`admin-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setActiveTab('profile')}
+        >
+          👤 Profile
+        </button>
+        <button 
           className={`admin-tab-btn ${activeTab === 'volunteers' ? 'active' : ''}`}
           onClick={() => setActiveTab('volunteers')}
         >
@@ -395,6 +411,7 @@ function AdminDashboard() {
 
       <main className="admin-dashboard-main">
         {activeTab === 'overview' && renderOverview()}
+        {activeTab === 'profile' && renderProfile()}
         {activeTab === 'volunteers' && renderVolunteers()}
         {activeTab === 'events' && renderEvents()}
         {activeTab === 'reports' && renderReports()}

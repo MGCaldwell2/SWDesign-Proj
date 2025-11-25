@@ -825,3 +825,20 @@
     grid-template-columns: 1fr;
   }
 }
+
+.admin-profile-content {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* optional: keep a bit of spacing for the inner content */
+.admin-profile-card {
+  margin-top: 1rem;
+}
+
+.admin-profile-card p {
+  margin: 0.35rem 0;
+  color: #1f2933;
+}

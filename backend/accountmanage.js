@@ -1,6 +1,34 @@
 import pool from "./db.js";
+import express from "express";
+const router = express.Router();
 
-// Basic connectivity check (runs once at startup)
+/* ---------------------------------------------
+   FIXED safeParseJSON — accepts arrays, JSON text,
+   and avoids wiping out real stored data
+---------------------------------------------- */
+function safeParseJSON(value, defaultValue = []) {
+  if (value == null) return defaultValue;
+
+  // MySQL JSON column → JS array automatically
+  if (Array.isArray(value)) return value;
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return defaultValue;
+
+    // Try JSON parse
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? parsed : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  }
+
+  return defaultValue;
+}
+
+// Basic connectivity check
 (async () => {
   try {
     await pool.query("SELECT 1");
@@ -10,29 +38,27 @@ import pool from "./db.js";
   }
 })();
 
-// Helper to safely parse JSON columns
-function safeParseJSON(value, defaultValue = []) {
-  if (!value) return defaultValue;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return defaultValue;
-  }
-}
-
-// GET /api/accounts/account?user_id=123
+/* ---------------------------------------------
+   GET /api/accounts/account
+   Retrieves current user's profile
+---------------------------------------------- */
 export const getAccount = async (req, res) => {
   const userId = Number(req.query.user_id || req.body?.user_id);
+
   if (!userId) return res.status(400).json({ error: "user_id is required" });
+
   try {
     const [rows] = await pool.query(
       "SELECT * FROM UserProfile WHERE user_id = ?",
       [userId]
     );
 
-    if (!rows.length) return res.status(404).json({ error: "Profile not found" });
+    if (!rows.length)
+      return res.status(404).json({ error: "Profile not found" });
 
     const profile = rows[0];
+
+    /* FIX: correct parsing */
     profile.skills = safeParseJSON(profile.skills);
     profile.availability = safeParseJSON(profile.availability);
 
@@ -43,10 +69,14 @@ export const getAccount = async (req, res) => {
   }
 };
 
-// PUT /api/accounts/account (update existing profile by user_id)
+/* ---------------------------------------------
+   PUT /api/accounts/account — update
+---------------------------------------------- */
 export const updateAccount = async (req, res) => {
   const userId = Number(req.body?.user_id);
-  if (!userId) return res.status(400).json({ error: "user_id is required" });
+  if (!userId)
+    return res.status(400).json({ error: "user_id is required" });
+
   const {
     full_name,
     address1,
@@ -64,15 +94,24 @@ export const updateAccount = async (req, res) => {
       "SELECT * FROM UserProfile WHERE user_id = ?",
       [userId]
     );
-    if (!existingRows.length) return res.status(404).json({ error: "Profile not found" });
+    if (!existingRows.length)
+      return res.status(404).json({ error: "Profile not found" });
 
     const existing = existingRows[0];
-    const skillsString = JSON.stringify(skills ?? safeParseJSON(existing.skills));
-    const availabilityString = JSON.stringify(availability ?? safeParseJSON(existing.availability));
+
+    // FIX: Only overwrite if new values provided
+    const skillsString =
+      Array.isArray(skills) ? JSON.stringify(skills) : existing.skills;
+
+    const availabilityString =
+      Array.isArray(availability)
+        ? JSON.stringify(availability)
+        : existing.availability;
 
     await pool.query(
       `UPDATE UserProfile 
-       SET full_name=?, address1=?, address2=?, city=?, state=?, zipcode=?, skills=?, preferences=?, availability=?
+       SET full_name=?, address1=?, address2=?, city=?, state=?, zipcode=?, 
+           skills=?, preferences=?, availability=?
        WHERE user_id=?`,
       [
         full_name ?? existing.full_name,
@@ -93,18 +132,25 @@ export const updateAccount = async (req, res) => {
       [userId]
     );
     const updated = updatedRows[0];
+
     updated.skills = safeParseJSON(updated.skills);
     updated.availability = safeParseJSON(updated.availability);
+
     res.json(updated);
   } catch (err) {
     console.error("updateAccount error:", err);
     res.status(500).json({ error: "Database update failed", details: err.message });
   }
 };
-// POST /api/accounts (create profile for user)
+
+/* ---------------------------------------------
+   POST /api/accounts — create OR update
+---------------------------------------------- */
 export const createAccount = async (req, res) => {
   const userId = Number(req.body?.user_id);
-  if (!userId) return res.status(400).json({ error: "user_id is required" });
+  if (!userId)
+    return res.status(400).json({ error: "user_id is required" });
+
   const {
     full_name = "",
     address1 = "",
@@ -118,17 +164,20 @@ export const createAccount = async (req, res) => {
   } = req.body || {};
 
   try {
-    // If profile already exists, treat as update instead of failing
     const [existing] = await pool.query(
       "SELECT id FROM UserProfile WHERE user_id=?",
       [userId]
     );
+
     const skillsString = JSON.stringify(skills);
     const availabilityString = JSON.stringify(availability);
 
     if (existing.length) {
       await pool.query(
-        `UPDATE UserProfile SET full_name=?, address1=?, address2=?, city=?, state=?, zipcode=?, skills=?, preferences=?, availability=? WHERE user_id=?`,
+        `UPDATE UserProfile 
+         SET full_name=?, address1=?, address2=?, city=?, state=?, zipcode=?, 
+             skills=?, preferences=?, availability=? 
+         WHERE user_id=?`,
         [
           full_name,
           address1,
@@ -144,7 +193,9 @@ export const createAccount = async (req, res) => {
       );
     } else {
       await pool.query(
-        `INSERT INTO UserProfile (user_id, full_name, address1, address2, city, state, zipcode, skills, preferences, availability)
+        `INSERT INTO UserProfile 
+         (user_id, full_name, address1, address2, city, state, zipcode, 
+          skills, preferences, availability)
          VALUES (?,?,?,?,?,?,?,?,?,?)`,
         [
           userId,
@@ -161,10 +212,15 @@ export const createAccount = async (req, res) => {
       );
     }
 
-    const [rows] = await pool.query("SELECT * FROM UserProfile WHERE user_id=?", [userId]);
+    const [rows] = await pool.query(
+      "SELECT * FROM UserProfile WHERE user_id=?",
+      [userId]
+    );
+
     const profile = rows[0];
     profile.skills = safeParseJSON(profile.skills);
     profile.availability = safeParseJSON(profile.availability);
+
     res.status(existing.length ? 200 : 201).json(profile);
   } catch (err) {
     console.error("createAccount error:", err);
@@ -172,12 +228,9 @@ export const createAccount = async (req, res) => {
   }
 };
 
-import express from "express";
-const router = express.Router();
-
-// Dedicated endpoints
-router.get("/account", getAccount); // expects user_id query param
-router.put("/account", updateAccount); // expects user_id in body
-router.post("/", createAccount); // create/update profile with user_id in body
+// Routes
+router.get("/account", getAccount);
+router.put("/account", updateAccount);
+router.post("/", createAccount);
 
 export default router;

@@ -9,14 +9,12 @@ export default function Login() {
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
 
-  // Forgot password state (UI-only demo)
   const [showReset, setShowReset] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetMessage, setResetMessage] = useState("");
 
-  // Remember me
   const [remember, setRemember] = useState(false);
 
   useEffect(() => {
@@ -26,24 +24,28 @@ export default function Login() {
       if (storedLocal) {
         setRemember(true);
         const user = JSON.parse(storedLocal);
-        navigate(user.role === 'admin' ? "/admin/dashboard" : "/dashboard");
+        navigate(user.role === "admin" ? "/admin/dashboard" : "/dashboard");
       } else if (storedSession) {
         const user = JSON.parse(storedSession);
-        navigate(user.role === 'admin' ? "/admin/dashboard" : "/dashboard");
+        navigate(user.role === "admin" ? "/admin/dashboard" : "/dashboard");
       }
-    } catch {
-      /* ignore storage errors */
-    }
+    } catch {}
   }, [navigate]);
 
   const validate = () => {
     const newErrors = { email: "", password: "" };
     let valid = true;
-    if (!email) { newErrors.email = "Email is required"; valid = false; }
-    if (!password) { newErrors.password = "Password is required"; valid = false; }
+    if (!email) {
+      newErrors.email = "Email is required";
+      valid = false;
+    }
+    if (!password) {
+      newErrors.password = "Password is required";
+      valid = false;
+    }
     setErrors(newErrors);
     return valid;
-  }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -54,7 +56,6 @@ export default function Login() {
       const res = await fetch("http://localhost:5050/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Most backends expect { email, password }. If yours expects { username, password }, switch back.
         body: JSON.stringify({ email, password }),
       });
 
@@ -65,20 +66,17 @@ export default function Login() {
         return;
       }
 
-      // Accept common token field names
       const token = data.token || data.accessToken || data.jwt || null;
       if (!token || typeof token !== "string") {
         setMessage("Login succeeded but no token returned.");
         return;
       }
 
-      // Get user role from response (backend returns role directly in data)
-      const userRole = data.role || 'volunteer';
+      const userRole = data.role || "volunteer";
       const userId = data.id || null;
 
-      // Store raw token (no JSON.stringify) and user info with role
       const userInfo = { email, role: userRole, id: userId };
-      
+
       if (remember) {
         localStorage.setItem("token", token);
         localStorage.setItem("currentUser", JSON.stringify(userInfo));
@@ -92,9 +90,8 @@ export default function Login() {
       }
 
       setMessage("Login successful");
-      // Navigate based on role
-      navigate(userRole === 'admin' ? "/admin/dashboard" : "/dashboard");
-    } catch (err) {
+      navigate(userRole === "admin" ? "/admin/dashboard" : "/dashboard");
+    } catch {
       setMessage("Login failed. Please try again.");
     }
   };
@@ -115,7 +112,6 @@ export default function Login() {
     if (!newPassword) return setResetMessage("Please enter a new password.");
     if (newPassword !== confirmPassword) return setResetMessage("Passwords do not match.");
 
-    // Demo-only: local fake reset
     const stored = localStorage.getItem(resetEmail);
     if (!stored) return setResetMessage("No account found for that email.");
 
@@ -181,17 +177,35 @@ export default function Login() {
               </label>
 
               <div style={{ display: "flex", gap: 8 }}>
-                <button type="submit" className="login-button">Sign In</button>
-                <button type="button" className="forgot-link" onClick={openReset}>Forgot password?</button>
+                <button type="submit" className="login-button">
+                  Sign In
+                </button>
+                <button type="button" className="forgot-link" onClick={openReset}>
+                  Forgot password?
+                </button>
               </div>
             </div>
 
             {message && (
-              <div className={`login-message ${message.toLowerCase().includes("success") ? "success" : "error"}`}>
+              <div
+                className={`login-message ${
+                  message.toLowerCase().includes("success") ? "success" : "error"
+                }`}
+              >
                 {message}
               </div>
             )}
           </form>
+
+          <div style={{ marginTop: "1rem", textAlign: "center" }}>
+            <button
+              type="button"
+              className="login-button"
+              onClick={() => navigate("/UserRegistration")}
+            >
+              Register an account
+            </button>
+          </div>
 
           {showReset && (
             <div className="reset-card" role="dialog" aria-label="Reset password">
@@ -231,12 +245,24 @@ export default function Login() {
                 </div>
 
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button type="submit" className="login-button">Update password</button>
-                  <button type="button" className="cancel-button" onClick={() => setShowReset(false)}>Cancel</button>
+                  <button type="submit" className="login-button">
+                    Update password
+                  </button>
+                  <button
+                    type="button"
+                    className="cancel-button"
+                    onClick={() => setShowReset(false)}
+                  >
+                    Cancel
+                  </button>
                 </div>
 
                 {resetMessage && (
-                  <div className={`login-message ${resetMessage.toLowerCase().includes("success") ? "success" : "error"}`}>
+                  <div
+                    className={`login-message ${
+                      resetMessage.toLowerCase().includes("success") ? "success" : "error"
+                    }`}
+                  >
                     {resetMessage}
                   </div>
                 )}
