@@ -288,19 +288,11 @@ function UserDashboard() {
 
       <div className="profile-section">
         <h3>Availability</h3>
-        <div className="availability-editor">
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <input type="date" value={availabilityInput} onChange={e => setAvailabilityInput(e.target.value)} />
-            <button type="button" onClick={addAvailabilityDate} disabled={!availabilityInput || updatingAvailability} className="profile-action-btn secondary" style={{ padding: '0.4rem 0.8rem' }}>Add</button>
-          </div>
-          {updatingAvailability && <p style={{ fontSize: '0.8rem' }}>Updating availability...</p>}
-        </div>
         {profile?.availability?.length ? (
           <ul className="availability-list">
             {profile.availability.map(d => (
-              <li key={d} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <li key={d}>
                 <span>{d}</span>
-                <button type="button" onClick={() => removeAvailabilityDate(d)} className="profile-action-btn secondary" style={{ padding: '0.25rem 0.6rem' }}>Remove</button>
               </li>
             ))}
           </ul>

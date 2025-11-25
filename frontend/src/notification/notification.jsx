@@ -97,10 +97,31 @@ function Notification() {
 
   const deleteNotification = (id) => {
     const notification = notifications.find(n => n.id === id);
+    // Optimistic update
     setNotifications(prev => prev.filter(n => n.id !== id));
     if (!notification.isRead) {
       setUnreadCount(prev => prev - 1);
     }
+    
+    // Call backend to delete
+    const recipientId = notification?.userId || sessionUserId;
+    fetch(`${API_BASE}/notifications/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: recipientId })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to delete notification');
+      return res.json();
+    })
+    .catch(err => {
+      console.error(err);
+      // Revert on failure
+      setNotifications(prev => [...prev, notification].sort((a, b) => b.timestamp - a.timestamp));
+      if (!notification.isRead) {
+        setUnreadCount(prev => prev + 1);
+      }
+    });
   };
 
   const getNotificationIcon = (type) => {

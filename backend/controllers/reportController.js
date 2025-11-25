@@ -68,7 +68,6 @@ export const getVolunteerReport = async (req, res) => {
         "volunteer_skills",
         "log_id",
         "event_description",
-        "hours",
         "status",
         "volunteer_date",
         "log_timestamp",
@@ -91,7 +90,6 @@ export const getVolunteerReport = async (req, res) => {
             r.volunteer_skills ? JSON.stringify(r.volunteer_skills).replace(/,/g, ";") : "",
             r.log_id || "",
             (r.event_description || "").replace(/,/g, " "),
-            r.hours || "",
             r.status || "",
             r.volunteer_date || "",
             r.log_timestamp
@@ -158,13 +156,10 @@ export const getVolunteerReport = async (req, res) => {
         ? new Date(row.volunteer_date).toLocaleDateString()
         : "N/A";
 
-      const hoursLabel =
-        row.hours != null ? `${row.hours} hour(s)` : "N/A";
-
       doc
         .fontSize(10)
         .text(
-          `- ${dateLabel} | ${row.event_description || "No description"} | Hours: ${hoursLabel} | Status: ${row.status}`
+          `- ${dateLabel} | ${row.event_description || "No description"} | Status: ${row.status}`
         );
     });
 
@@ -196,12 +191,11 @@ export const getEventReport = async (req, res) => {
         e.capacity AS event_capacity,
         e.created_by AS created_by_user_id,
         creator.display_name AS created_by_name,
-        v.id AS volunteer_id,
-        v.name AS volunteer_name,
-        v.email AS volunteer_email,
-        v.phone AS volunteer_phone,
+        h.user_id AS volunteer_id,
+        up.full_name AS volunteer_name,
+        u.email AS volunteer_email,
+        u.phone AS volunteer_phone,
         h.log_id AS log_id,
-        h.hours AS hours,
         h.status AS status,
         h.volunteer_date AS volunteer_date
       FROM events e
@@ -209,7 +203,8 @@ export const getEventReport = async (req, res) => {
       LEFT JOIN VolunteerHistory h
         ON h.event_description COLLATE utf8mb4_unicode_ci =
            e.name COLLATE utf8mb4_unicode_ci
-      LEFT JOIN volunteers v ON v.user_id = h.user_id
+      LEFT JOIN users u ON u.id = h.user_id
+      LEFT JOIN UserProfile up ON up.user_id = h.user_id
       ORDER BY e.date, e.name, volunteer_name, h.volunteer_date
     `);
 
@@ -230,9 +225,7 @@ export const getEventReport = async (req, res) => {
         "volunteer_id",
         "volunteer_name",
         "volunteer_email",
-        "volunteer_phone",
         "log_id",
-        "hours",
         "status",
         "volunteer_date",
       ];
@@ -255,9 +248,7 @@ export const getEventReport = async (req, res) => {
             r.volunteer_id,
             (r.volunteer_name || "").replace(/,/g, " "),
             r.volunteer_email,
-            r.volunteer_phone,
             r.log_id,
-            r.hours,
             r.status,
             r.volunteer_date,
           ].join(",")
@@ -300,9 +291,6 @@ export const getEventReport = async (req, res) => {
 
       if (!row.volunteer_id) return;
 
-      const hoursLabel =
-        row.hours != null ? `${row.hours} hr(s)` : "N/A";
-
       const dateLabel = row.volunteer_date
         ? new Date(row.volunteer_date).toLocaleDateString()
         : "N/A";
@@ -310,7 +298,7 @@ export const getEventReport = async (req, res) => {
       doc
         .fontSize(10)
         .text(
-          `- ${row.volunteer_name} | Email: ${row.volunteer_email} | Phone: ${row.volunteer_phone} | Date: ${dateLabel} | Hours: ${hoursLabel} | Status: ${row.status}`
+          `- ${row.volunteer_name} | Email: ${row.volunteer_email} | Date: ${dateLabel} | Status: ${row.status}`
         );
     });
 

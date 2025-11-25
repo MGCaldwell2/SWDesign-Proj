@@ -29,7 +29,7 @@ export const getEventById = async (req, res) => {
 // CREATE EVENT
 export const createEvent = async (req, res) => {
   try {
-    let { name, description, location, date, capacity } = req.body || {};
+    let { name, description, location, date, capacity, skills, urgency } = req.body || {};
     // created_by from authenticated user if available
     const created_by = req.user?.id || null;
 
@@ -37,6 +37,7 @@ export const createEvent = async (req, res) => {
     description = typeof description === "string" ? description.trim() : "";
     location = typeof location === "string" ? location.trim() : "";
     date = date && String(date).trim() !== "" ? date : null;
+    urgency = urgency && String(urgency).trim() !== "" ? urgency : null;
 
     if (capacity === "" || capacity === undefined || capacity === null) {
       capacity = null;
@@ -46,13 +47,19 @@ export const createEvent = async (req, res) => {
       capacity = n;
     }
 
+    // Handle skills - ensure it's a valid JSON array
+    let skillsJson = null;
+    if (Array.isArray(skills) && skills.length > 0) {
+      skillsJson = JSON.stringify(skills);
+    }
+
     if (!name || !description || !location) {
       return res.status(400).json({ message: "name, description, location are required" });
     }
 
     const [result] = await pool.query(
-      "INSERT INTO events (name, description, location, date, capacity, created_by) VALUES (?, ?, ?, ?, ?, ?)",
-      [name, description, location, date, capacity, created_by]
+      "INSERT INTO events (name, description, location, date, capacity, skills, urgency, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [name, description, location, date, capacity, skillsJson, urgency, created_by]
     );
 
     const [newEvent] = await pool.query("SELECT * FROM events WHERE id = ?", [result.insertId]);
@@ -69,12 +76,13 @@ export const updateEvent = async (req, res) => {
     const eventId = Number(req.params.id);
     if (!Number.isInteger(eventId)) return res.status(400).json({ message: "Invalid event id" });
 
-    let { name, description, location, date, capacity } = req.body || {};
+    let { name, description, location, date, capacity, skills, urgency } = req.body || {};
 
     name = typeof name === "string" ? name.trim() : "";
     description = typeof description === "string" ? description.trim() : "";
     location = typeof location === "string" ? location.trim() : "";
     date = date && String(date).trim() !== "" ? date : null;
+    urgency = urgency && String(urgency).trim() !== "" ? urgency : null;
 
     if (capacity === "" || capacity === undefined || capacity === null) {
       capacity = null;
@@ -84,13 +92,19 @@ export const updateEvent = async (req, res) => {
       capacity = n;
     }
 
+    // Handle skills - ensure it's a valid JSON array
+    let skillsJson = null;
+    if (Array.isArray(skills) && skills.length > 0) {
+      skillsJson = JSON.stringify(skills);
+    }
+
     if (!name || !description || !location) {
       return res.status(400).json({ message: "name, description, location are required" });
     }
 
     const [result] = await pool.query(
-      "UPDATE events SET name=?, description=?, location=?, date=?, capacity=? WHERE id=?",
-      [name, description, location, date, capacity, eventId]
+      "UPDATE events SET name=?, description=?, location=?, date=?, capacity=?, skills=?, urgency=? WHERE id=?",
+      [name, description, location, date, capacity, skillsJson, urgency, eventId]
     );
 
     if (result.affectedRows === 0) return res.status(404).json({ message: "Event not found" });

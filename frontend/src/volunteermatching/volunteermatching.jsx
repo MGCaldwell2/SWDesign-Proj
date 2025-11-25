@@ -39,7 +39,23 @@ export default function VolunteerMatching() {
         ]);
 
         setVolunteers(Array.isArray(vols) ? vols : []);
-        setEvents(Array.isArray(evts) ? evts : []);
+        
+        // Parse skills from JSON for each event
+        const parsedEvents = (Array.isArray(evts) ? evts : []).map(event => {
+          let requiredSkills = [];
+          if (Array.isArray(event.skills)) {
+            requiredSkills = event.skills;
+          } else if (typeof event.skills === "string" && event.skills.trim() !== "") {
+            try {
+              requiredSkills = JSON.parse(event.skills);
+            } catch {
+              requiredSkills = [];
+            }
+          }
+          return { ...event, requiredSkills };
+        });
+        
+        setEvents(parsedEvents);
         setLoading(false);
       } catch (err) {
         setError(err.message || "Failed to load volunteers or events. Please check your login status.");
@@ -271,12 +287,9 @@ function VolunteerCard({ volunteer, isSelected, onClick }) {
       </div>
       {volunteer.skills?.length > 0 && (
         <div className="volunteer-skills">
-          {volunteer.skills.slice(0, 3).map((skill, i) => (
+          {volunteer.skills.map((skill, i) => (
             <span key={i} className="skill-tag">{skill}</span>
           ))}
-          {volunteer.skills.length > 3 && (
-            <span className="skill-tag more">+{volunteer.skills.length - 3} more</span>
-          )}
         </div>
       )}
     </div>

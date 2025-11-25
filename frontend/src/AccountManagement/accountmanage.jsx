@@ -21,10 +21,12 @@ export default function AccountManage({ states = [], skills = [] }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Load current user from localStorage
+  // Load current user from localStorage or sessionStorage
   useEffect(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem("currentUser"));
+      const localStored = localStorage.getItem("currentUser");
+      const sessionStored = sessionStorage.getItem("currentUser");
+      const stored = JSON.parse(localStored || sessionStored);
       if (stored?.id) setUserId(stored.id);
       if (stored?.role) setUserRole(stored.role);
     } catch {}

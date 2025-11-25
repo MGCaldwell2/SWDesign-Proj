@@ -56,6 +56,29 @@ router.put("/notifications/:id/read", async (req, res) => {
   }
 });
 
+// Delete a notification
+router.delete("/notifications/:id", async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body; // ownership check
+  if (!userId) return res.status(400).json({ error: "userId is required" });
+
+  try {
+    const [result] = await pool.query(
+      `DELETE FROM notifications WHERE id = ? AND recipient_user_id = ?`,
+      [id, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Notification not found or unauthorized" });
+    }
+
+    res.json({ success: true, id: Number(id) });
+  } catch (err) {
+    console.error("Error deleting notification:", err);
+    res.status(500).json({ error: "Failed to delete notification" });
+  }
+});
+
 router.post("/notifications", async (req, res) => {
   const { volunteerName, eventId, type, message, broadcast } = req.body;
   if (!type || !message)

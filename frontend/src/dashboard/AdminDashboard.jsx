@@ -174,13 +174,12 @@ function AdminDashboard() {
               <th>Skills</th>
               <th>City</th>
               <th>Availability</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {volunteers.length === 0 ? (
               <tr>
-                <td colSpan="6" className="empty-cell">No volunteers found</td>
+                <td colSpan="5" className="empty-cell">No volunteers found</td>
               </tr>
             ) : (
               volunteers.map(volunteer => (
@@ -189,19 +188,13 @@ function AdminDashboard() {
                   <td className="name-cell">{volunteer.name}</td>
                   <td>
                     <div className="skills-list">
-                      {volunteer.skills?.slice(0, 2).map(skill => (
+                      {volunteer.skills?.map(skill => (
                         <span key={skill} className="skill-badge">{skill}</span>
                       ))}
-                      {volunteer.skills?.length > 2 && (
-                        <span className="skill-badge more">+{volunteer.skills.length - 2}</span>
-                      )}
                     </div>
                   </td>
                   <td>{volunteer.city}</td>
                   <td>{volunteer.availability?.length || 0} dates</td>
-                  <td>
-                    <button className="table-action-btn">View</button>
-                  </td>
                 </tr>
               ))
             )}

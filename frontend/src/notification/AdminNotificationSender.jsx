@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './notification.css';
 
 const API_BASE = "/api";
 
 
 function AdminNotificationSender() {
+  const navigate = useNavigate();
   const [volunteers, setVolunteers] = useState([]);
   const [events, setEvents] = useState([]);
   const [targetType, setTargetType] = useState('volunteer'); // 'volunteer' | 'event' | 'broadcast'
@@ -43,9 +45,10 @@ function AdminNotificationSender() {
         setStatus({ type: 'error', message: data.error || 'Failed to send notification.' });
       } else {
         setStatus({ type: 'success', message: 'Notification sent successfully!' });
-        setMessage('');
-        setVolunteerName('');
-        setEventId('');
+        setTimeout(() => {
+          navigate('/admin/dashboard');
+        }, 1500);
+        return;
       }
     } catch (err) {
       setStatus({ type: 'error', message: 'Network error. Please try again.' });
