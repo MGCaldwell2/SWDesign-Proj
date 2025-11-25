@@ -10,6 +10,7 @@ export default function UserReg() {
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -26,11 +27,13 @@ export default function UserReg() {
       return;
     }
 
+    const role = isAdmin ? "admin" : "volunteer";
+
     try {
       const res = await fetch("http://localhost:5050/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, role })
       });
       const data = await res.json().catch(() => ({}));
 
@@ -40,11 +43,12 @@ export default function UserReg() {
       }
 
       if (data.token) {
-        // Persist full user object including id for profile creation
         localStorage.setItem("token", data.token);
-        localStorage.setItem("currentUser", JSON.stringify({ id: data.id, email: data.email, role: data.role }));
+        localStorage.setItem(
+          "currentUser",
+          JSON.stringify({ id: data.id, email: data.email, role: data.role })
+        );
         setSuccess("Registration successful! Let's finish your profile…");
-        // Always redirect to Account Management when needs_profile flag present
         const target = data.needs_profile ? "/AccountManage" : "/";
         setTimeout(() => navigate(target), 800);
       } else {
@@ -117,6 +121,17 @@ export default function UserReg() {
               {showConfirmPassword ? "Hide" : "Show"}
             </button>
           </div>
+        </label>
+
+        <label className="user-reg-label">
+          <input
+            type="checkbox"
+            checked={isAdmin}
+            onChange={(e) => setIsAdmin(e.target.checked)}
+          />
+          <span style={{ marginLeft: "0.5rem" }}>
+            Register as admin (otherwise volunteer)
+          </span>
         </label>
 
         <button type="submit" className="user-reg-btn">Register</button>

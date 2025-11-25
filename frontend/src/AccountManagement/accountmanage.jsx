@@ -44,7 +44,7 @@ export default function AccountManage({ states = [], skills = [] }) {
     ["WI", "Wisconsin"], ["WY", "Wyoming"]
   ];
 
-  const skillset = ["Spanish", "Chinese", "First Aid", "Crown Control", "Photography", "Food Handling", "Heavy Lifting", "Elder Care" 
+  const skillset = ["Spanish", "Chinese", "First Aid", "Crowd Control", "Photography", "Food Handling", "Heavy Lifting", "Elder Care" 
 ];
 
   function FullNameField() {
