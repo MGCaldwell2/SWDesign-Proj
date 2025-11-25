@@ -14,9 +14,14 @@ export default function EventCreateForm() {
   });
 
   const skillsOptions = [
-    "Spanish", "Chinese", "French", "First Aid", "Crowd Control", "Data Entry",
-    "Photography", "Food Handling", "Logistics", "Folding and washing Clothes",
-    "Heavy Lifting", "Elder Care"
+    "Spanish",
+    "Chinese",
+    "First Aid",
+    "Crowd Control",
+    "Photography",
+    "Food Handling",
+    "Heavy Lifting",
+    "Elder Care",
   ];
 
   const urgencyOptions = ["Low", "Medium", "High"];
@@ -46,6 +51,8 @@ export default function EventCreateForm() {
         location: formData.location,
         date: formData.date,
         capacity: formData.capacity === "" ? null : Number(formData.capacity),
+        skills: formData.skills,
+        urgency: formData.urgency,
       };
 
       const res = await fetch("http://localhost:5050/api/events", {
@@ -67,7 +74,7 @@ export default function EventCreateForm() {
       console.log("Create Event Response:", res.status, data);
 
       if (res.ok) {
-        navigate("/", { state: { successMessage: "✅ Event created successfully!" } });
+        navigate("/admin/dashboard", { state: { successMessage: "✅ Event created successfully!" } });
       } else {
         alert(data.message || `Failed to create event (status ${res.status}).`);
       }

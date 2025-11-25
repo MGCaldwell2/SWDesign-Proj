@@ -17,9 +17,14 @@ export default function EventEditForm() {
   const navigate = useNavigate();
 
   const skillsOptions = [
-    "Spanish", "Chinese", "French", "First Aid", "Crowd Control", "Data Entry",
-    "Photography", "Food Handling", "Logistics", "Folding and washing Clothes",
-    "Heavy Lifting", "Elder Care"
+    "Spanish",
+    "Chinese",
+    "First Aid",
+    "Crowd Control",
+    "Photography",
+    "Food Handling",
+    "Heavy Lifting",
+    "Elder Care",
   ];
 
   async function refreshEvents() {
@@ -42,14 +47,27 @@ export default function EventEditForm() {
       const res = await fetch(`http://localhost:5050/api/events/${id}`);
       if (!res.ok) return;
       const data = await res.json();
+
+      let parsedSkills = [];
+      if (Array.isArray(data.skills)) {
+        parsedSkills = data.skills;
+      } else if (typeof data.skills === "string" && data.skills.trim() !== "") {
+        try {
+          parsedSkills = JSON.parse(data.skills);
+        } catch {
+          parsedSkills = [];
+        }
+      }
+
       setSelectedEvent({
         ...data,
-        skills: Array.isArray(data.skills) ? data.skills : [],
+        skills: parsedSkills,
         urgency: data.urgency || "Low",
-        date: toInputDate(data.date)
+        date: data.date ? toInputDate(data.date) : ""
       });
     } catch {}
   };
+
 
   const handleChange = (e) => {
     setSelectedEvent({ ...selectedEvent, [e.target.name]: e.target.value });
@@ -67,18 +85,25 @@ export default function EventEditForm() {
     e.preventDefault();
     if (!selectedEvent) return;
 
-    const payload = {
-      name: selectedEvent.name?.trim() || "",
-      description: selectedEvent.description?.trim() || "",
-      location: selectedEvent.location?.trim() || "",
-      date: selectedEvent.date && String(selectedEvent.date).trim() !== ""
-        ? toInputDate(selectedEvent.date)
-        : null,
-      capacity:
-        selectedEvent.capacity === "" || selectedEvent.capacity === undefined || selectedEvent.capacity === null
-          ? null
-          : Number(selectedEvent.capacity),
-    };
+      const payload = {
+        name: selectedEvent.name?.trim() || "",
+        description: selectedEvent.description?.trim() || "",
+        location: selectedEvent.location?.trim() || "",
+        date:
+          selectedEvent.date && String(selectedEvent.date).trim() !== ""
+            ? selectedEvent.date
+            : null,
+        capacity:
+          selectedEvent.capacity === "" ||
+          selectedEvent.capacity === undefined ||
+          selectedEvent.capacity === null
+            ? null
+            : Number(selectedEvent.capacity),
+        skills: Array.isArray(selectedEvent.skills) ? selectedEvent.skills : [],
+        urgency: selectedEvent.urgency || null,
+      };
+
+
 
     try {
       const res = await fetch(`http://localhost:5050/api/events/${selectedEvent.id}`, {
@@ -89,7 +114,7 @@ export default function EventEditForm() {
       const data = await res.json().catch(() => ({}));
       if (res.status === 401 || res.status === 403) { alert("You must be logged in to update events."); return; }
       if (!res.ok) { alert(data.message || "Failed to update event."); return; }
-      navigate("/", { state: { successMessage: "✅ Event updated successfully!" } });
+      navigate("/admin/dashboard", { state: { successMessage: "✅ Event updated successfully!" } });
     } catch {
       alert("An error occurred while updating the event.");
     }
@@ -165,7 +190,7 @@ export default function EventEditForm() {
           <input
             type="date"
             name="date"
-            value={toInputDate(selectedEvent.date)}
+            value={selectedEvent.date || ""}
             onChange={handleChange}
           />
 

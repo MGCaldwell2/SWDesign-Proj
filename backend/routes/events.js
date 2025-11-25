@@ -5,18 +5,47 @@ const router = express.Router();
 
 // CREATE EVENT
 router.post("/", async (req, res) => {
+  console.log("CREATE /api/events body:", req.body);
   try {
-    const { name, description, location, date, capacity, created_by } = req.body;
+    const {
+      name,
+      description,
+      location,
+      date,
+      capacity,
+      created_by,
+      skills,
+      urgency,
+    } = req.body;
+
+    const skillsJson =
+      Array.isArray(skills) && skills.length > 0 ? JSON.stringify(skills) : null;
+
     const [result] = await pool.query(
-      "INSERT INTO events (name, description, location, date, capacity, created_by) VALUES (?, ?, ?, ?, ?, ?)",
-      [name, description, location, date, capacity || null, created_by || null]
+      `INSERT INTO events
+       (name, description, skills, urgency, date, location, capacity, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name,
+        description,
+        skillsJson,
+        urgency || null,
+        date || null,
+        location || null,
+        capacity ?? null,
+        created_by ?? null,
+      ]
     );
-    const [newEvent] = await pool.query("SELECT * FROM events WHERE id = ?", [result.insertId]);
-    res.status(201).json({ message: "Event created successfully", event: newEvent[0] });
+
+    const [newEvent] = await pool.query("SELECT * FROM events WHERE id = ?", [
+      result.insertId,
+    ]);
+    res
+      .status(201)
+      .json({ message: "Event created successfully", event: newEvent[0] });
   } catch (err) {
-  console.error("❌ Error creating event:", err.message);
-  console.error(err);
-  res.status(500).json({ message: err.message });
+    console.error("❌ Error creating event:", err);
+    res.status(500).json({ message: err.message || "Error creating event" });
   }
 });
 
@@ -35,8 +64,11 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const eventId = req.params.id;
-    const [rows] = await pool.query("SELECT * FROM events WHERE id = ?", [eventId]);
-    if (rows.length === 0) return res.status(404).json({ message: "Event not found" });
+    const [rows] = await pool.query("SELECT * FROM events WHERE id = ?", [
+      eventId,
+    ]);
+    if (rows.length === 0)
+      return res.status(404).json({ message: "Event not found" });
     res.json(rows[0]);
   } catch (err) {
     console.error(err);
@@ -46,18 +78,45 @@ router.get("/:id", async (req, res) => {
 
 // UPDATE EVENT
 router.put("/:id", async (req, res) => {
+  console.log("UPDATE /api/events/:id", req.params.id, "body:", req.body);
   try {
     const eventId = req.params.id;
-    const { name, description, location, date, capacity } = req.body;
+    const {
+      name,
+      description,
+      location,
+      date,
+      capacity,
+      skills,
+      urgency,
+    } = req.body;
+
+    const skillsJson =
+      Array.isArray(skills) && skills.length > 0 ? JSON.stringify(skills) : null;
+
     const [result] = await pool.query(
-      "UPDATE events SET name=?, description=?, location=?, date=?, capacity=? WHERE id=?",
-      [name, description, location, date, capacity, eventId]
+      `UPDATE events
+       SET name = ?, description = ?, skills = ?, urgency = ?,
+           date = ?, location = ?, capacity = ?
+       WHERE id = ?`,
+      [
+        name,
+        description,
+        skillsJson,
+        urgency || null,
+        date || null,
+        location || null,
+        capacity ?? null,
+        eventId,
+      ]
     );
 
     if (result.affectedRows === 0)
       return res.status(404).json({ message: "Event not found" });
 
-    const [updated] = await pool.query("SELECT * FROM events WHERE id=?", [eventId]);
+    const [updated] = await pool.query("SELECT * FROM events WHERE id = ?", [
+      eventId,
+    ]);
     res.json({ message: "Event updated successfully", event: updated[0] });
   } catch (err) {
     console.error(err);
@@ -69,7 +128,9 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const eventId = req.params.id;
-    const [result] = await pool.query("DELETE FROM events WHERE id=?", [eventId]);
+    const [result] = await pool.query("DELETE FROM events WHERE id = ?", [
+      eventId,
+    ]);
     if (result.affectedRows === 0)
       return res.status(404).json({ message: "Event not found" });
     res.json({ message: "Event deleted successfully" });
